@@ -1,0 +1,355 @@
+{% extends 'tenders/base.html' %}
+
+{% block title %}{{ tender.tender_id }} - KenGen Tender Tracking System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tenders:landing' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tenders:tender_list' %}">Tenders</a></li>
+            <li class="breadcrumb-item active">{{ tender.tender_id }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="fw-bold mb-2">{{ tender.tender_id }}</h1>
+            <div class="d-flex flex-wrap gap-2">
+                {% if tender.region %}
+                <span class="badge" style="background-color: var(--kengen-blue); color: white;">
+                    <i class="bi bi-geo-alt"></i> {{ tender.region.name }}
+                </span>
+                {% endif %}
+                {% if tender.department %}
+                <span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">
+                    <i class="bi bi-building"></i> {{ tender.department.name }}
+                </span>
+                {% endif %}
+                {% if tender.procurement_type %}
+                <span class="badge" style="background-color: var(--kengen-light-blue); color: white;">
+                    {{ tender.procurement_type.name }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'tenders:tender_edit' tender.pk %}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a href="{% url 'tenders:tender_delete' tender.pk %}" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Delete
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Description -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-file-text"></i> Tender Description
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ tender.tender_description }}</p>
+                </div>
+            </div>
+
+            <!-- References & IDs -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-hash"></i> References & Identifiers
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if tender.egp_tender_reference %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">eGP Tender Reference</small>
+                            <strong>{{ tender.egp_tender_reference }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.kengen_tender_reference %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">KenGen Tender Reference</small>
+                            <strong>{{ tender.kengen_tender_reference }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.requisition_number %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Requisition Number</small>
+                            <strong>{{ tender.requisition_number }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.shopping_cart %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Shopping Cart</small>
+                            <strong>{{ tender.shopping_cart }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline & Dates -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-calendar-event"></i> Timeline & Important Dates
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if tender.tender_advert_date %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar-plus"></i> Tender Advert Date
+                            </small>
+                            <strong>{{ tender.tender_advert_date|date:"l, F d, Y" }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.tender_closing_date %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar-x"></i> Tender Closing Date
+                            </small>
+                            <strong>{{ tender.tender_closing_date|date:"l, F d, Y" }}</strong>
+                            {% if tender.tender_closing_time %}
+                            <br><small class="text-muted">Time: {{ tender.tender_closing_time|time:"g:i A" }}</small>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% if tender.tender_validity_expiry_date %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar-check"></i> Validity Expiry Date
+                            </small>
+                            <strong>{{ tender.tender_validity_expiry_date|date:"l, F d, Y" }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.tender_evaluation_duration %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-clock"></i> Evaluation Duration
+                            </small>
+                            <strong>{{ tender.tender_evaluation_duration }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Committees -->
+            <div class="row">
+                <!-- Opening Committee -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="bi bi-people"></i> Tender Opening Committee
+                        </div>
+                        <div class="card-body">
+                            {% if tender.opening_committee_members.all %}
+                            <ul class="list-group list-group-flush">
+                                {% for member in tender.opening_committee_members.all %}
+                                <li class="list-group-item px-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-grow-1">
+                                            <strong>{{ member.employee.full_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ member.employee.job_title|default:"Staff Member" }}</small>
+                                        </div>
+                                        {% if member.role %}
+                                        <span class="badge" style="background-color: var(--kengen-blue); color: white;">{{ member.role }}</span>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p class="text-muted mb-0">No committee members assigned</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evaluation Committee -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="bi bi-people"></i> Tender Evaluation Committee
+                        </div>
+                        <div class="card-body">
+                            {% if tender.evaluation_committee_members.all %}
+                            <ul class="list-group list-group-flush">
+                                {% for member in tender.evaluation_committee_members.all %}
+                                <li class="list-group-item px-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-grow-1">
+                                            <strong>{{ member.employee.full_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ member.employee.job_title|default:"Staff Member" }}</small>
+                                        </div>
+                                        {% if member.role %}
+                                        <span class="badge" style="background-color: var(--kengen-red); color: white;">{{ member.role }}</span>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p class="text-muted mb-0">No committee members assigned</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchase Orders -->
+            {% if tender.e_purchase_order_no or tender.sap_purchase_order_no %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-receipt"></i> Purchase Orders
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if tender.e_purchase_order_no %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">e-Purchase Order No</small>
+                            <strong>{{ tender.e_purchase_order_no }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.sap_purchase_order_no %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">SAP Purchase Order No</small>
+                            <strong>{{ tender.sap_purchase_order_no }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-flag"></i> Status
+                </div>
+                <div class="card-body">
+                    {% if tender.loa_status %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">LOA Status</small>
+                        <h5><span class="badge" style="background-color: var(--kengen-red); color: white;">{{ tender.loa_status.name }}</span></h5>
+                    </div>
+                    {% endif %}
+                    {% if tender.contract_status %}
+                    <div class="mb-0">
+                        <small class="text-muted d-block">Contract Status</small>
+                        <h5><span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">{{ tender.contract_status.name }}</span></h5>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Financial Information -->
+            {% if tender.estimated_value %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-currency-dollar"></i> Financial Information
+                </div>
+                <div class="card-body">
+                    <small class="text-muted d-block">Estimated Value</small>
+                    <h3 class="text-primary mb-0">KSh {{ tender.estimated_value|floatformat:2 }}</h3>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Organizational Structure -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-diagram-3"></i> Organization
+                </div>
+                <div class="card-body">
+                    {% if tender.region %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Region</small>
+                        <strong>{{ tender.region.name }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if tender.department %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Department</small>
+                        <strong>{{ tender.department.name }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if tender.section %}
+                    <div class="mb-0">
+                        <small class="text-muted d-block">Section</small>
+                        <strong>{{ tender.section.name }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Assigned Personnel -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-person"></i> Assigned Personnel
+                </div>
+                <div class="card-body">
+                    {% if tender.tender_creator %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Tender Creator</small>
+                        <strong>{{ tender.tender_creator.full_name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ tender.tender_creator.email }}</small>
+                    </div>
+                    {% endif %}
+                    {% if tender.contract_creator %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Contract Creator</small>
+                        <strong>{{ tender.contract_creator.full_name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ tender.contract_creator.email }}</small>
+                    </div>
+                    {% endif %}
+                    {% if tender.user %}
+                    <div class="mb-0">
+                        <small class="text-muted d-block">Assigned User</small>
+                        <strong>{{ tender.user.full_name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ tender.user.email }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-info-circle"></i> Metadata
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Created</small>
+                        <strong>{{ tender.created_at|date:"d M Y, g:i A" }}</strong>
+                    </div>
+                    <div class="mb-0">
+                        <small class="text-muted d-block">Last Updated</small>
+                        <strong>{{ tender.updated_at|date:"d M Y, g:i A" }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a href="{% url 'tenders:tender_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Tender List
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends 'tenders/base.html' %}
+
+{% block title %}Tenders - KenGen Tender Tracking System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold">
+            <i class="bi bi-file-earmark-text"></i> All Tenders
+        </h1>
+        <a href="{% url 'tenders:tender_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add New Tender
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label"><i class="bi bi-search"></i> Search</label>
+                <input type="text" class="form-control" name="search" 
+                       placeholder="Search by ID, description, reference..." 
+                       value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label"><i class="bi bi-geo-alt"></i> Region</label>
+                <select class="form-select" name="region">
+                    <option value="">All Regions</option>
+                    {% for region in regions %}
+                    <option value="{{ region.id }}" {% if region_filter == region.id|stringformat:'s' %}selected{% endif %}>
+                        {{ region.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label"><i class="bi bi-building"></i> Department</label>
+                <select class="form-select" name="department">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if department_filter == dept.id|stringformat:'s' %}selected{% endif %}>
+                        {{ dept.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label"><i class="bi bi-tag"></i> Type</label>
+                <select class="form-select" name="procurement_type">
+                    <option value="">All Types</option>
+                    {% for type in procurement_types %}
+                    <option value="{{ type.id }}" {% if procurement_type_filter == type.id|stringformat:'s' %}selected{% endif %}>
+                        {{ type.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label"><i class="bi bi-file-check"></i> LOA Status</label>
+                <select class="form-select" name="loa_status">
+                    <option value="">All Status</option>
+                    {% for status in loa_statuses %}
+                    <option value="{{ status.id }}" {% if loa_status_filter == status.id|stringformat:'s' %}selected{% endif %}>
+                        {{ status.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel"></i> Apply Filters
+                </button>
+                <a href="{% url 'tenders:tender_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Count -->
+    <div class="mb-3">
+        <p class="text-muted">
+            <i class="bi bi-info-circle"></i> Showing <strong>{{ tenders.count }}</strong> tender(s)
+        </p>
+    </div>
+
+    <!-- Tenders List -->
+    {% if tenders %}
+    <div class="row">
+        {% for tender in tenders %}
+        <div class="col-12">
+            <div class="tender-item">
+                <div class="row">
+                    <div class="col-lg-9">
+                        <h5 class="mb-2">
+                            <a href="{% url 'tenders:tender_detail' tender.pk %}" class="text-decoration-none">
+                                {{ tender.tender_id }}
+                            </a>
+                        </h5>
+                        <p class="mb-2">{{ tender.tender_description|truncatewords:30 }}</p>
+                        
+                        <!-- Badges -->
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            {% if tender.region %}
+                            <span class="badge" style="background-color: var(--kengen-blue); color: white;">
+                                <i class="bi bi-geo-alt"></i> {{ tender.region.name }}
+                            </span>
+                            {% endif %}
+                            {% if tender.department %}
+                            <span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">
+                                <i class="bi bi-building"></i> {{ tender.department.name }}
+                            </span>
+                            {% endif %}
+                            {% if tender.section %}
+                            <span class="badge" style="background-color: var(--kengen-red); color: white;">
+                                <i class="bi bi-diagram-3"></i> {{ tender.section.name }}
+                            </span>
+                            {% endif %}
+                            {% if tender.procurement_type %}
+                            <span class="badge" style="background-color: var(--kengen-light-blue); color: white;">
+                                {{ tender.procurement_type.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Additional Info -->
+                        <div class="small text-muted">
+                            {% if tender.tender_creator %}
+                            <i class="bi bi-person"></i> Created by: {{ tender.tender_creator.full_name }}
+                            {% endif %}
+                            {% if tender.egp_tender_reference %}
+                            | <i class="bi bi-hash"></i> eGP: {{ tender.egp_tender_reference }}
+                            {% endif %}
+                            {% if tender.kengen_tender_reference %}
+                            | <i class="bi bi-hash"></i> KenGen: {{ tender.kengen_tender_reference }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-3 text-lg-end mt-3 mt-lg-0">
+                        <!-- Status Badges -->
+                        {% if tender.loa_status %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block">LOA Status</small>
+                            <span class="badge" style="background-color: var(--kengen-red); color: white;">{{ tender.loa_status.name }}</span>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract_status %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block">Contract Status</small>
+                            <span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">{{ tender.contract_status.name }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Dates -->
+                        {% if tender.tender_advert_date %}
+                        <div class="mb-1">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar-plus"></i> Advert: {{ tender.tender_advert_date|date:"d M Y" }}
+                            </small>
+                        </div>
+                        {% endif %}
+                        {% if tender.tender_closing_date %}
+                        <div class="mb-1">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar-x"></i> Closes: {{ tender.tender_closing_date|date:"d M Y" }}
+                            </small>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Estimated Value -->
+                        {% if tender.estimated_value %}
+                        <div class="mt-2">
+                            <strong class="text-primary">KSh {{ tender.estimated_value|floatformat:2 }}</strong>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Action Button -->
+                        <div class="mt-3">
+                            <a href="{% url 'tenders:tender_detail' tender.pk %}" class="btn btn-sm btn-outline-primary">
+                                View Details <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+            <h4 class="mt-3 text-muted">No tenders found</h4>
+            <p class="text-muted">Try adjusting your filters or search criteria</p>
+            <a href="{% url 'tenders:tender_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add First Tender
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

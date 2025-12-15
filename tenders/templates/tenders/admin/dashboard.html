@@ -1,0 +1,97 @@
+{% extends "tenders/base.html" %}
+
+{% block title %}Custom Admin Panel - KenGen Tender Tracking{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tenders:landing' %}">Home</a></li>
+            <li class="breadcrumb-item active">Custom Admin Panel</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-2">
+                <i class="bi bi-shield-lock"></i> Custom Admin Panel
+            </h1>
+            <p class="text-muted mb-0">Bulk upload and manage lookup data</p>
+        </div>
+        <div>
+            <a href="{% url 'admin:index' %}" class="btn btn-secondary">
+                <i class="bi bi-gear"></i> Django Admin
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>Bulk Upload Instructions:</strong>
+        Upload CSV or Excel files to quickly populate lookup tables. Files must contain the required columns as specified on each upload page.
+    </div>
+
+    <!-- Lookup Models Grid -->
+    <div class="row">
+        {% for model in lookup_models %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">
+                                <i class="bi bi-database"></i> {{ model.name }}
+                            </h5>
+                            <p class="text-muted small mb-0">{{ model.count }} record{{ model.count|pluralize }}</p>
+                        </div>
+                        <span class="badge" style="background-color: var(--kengen-blue); color: white;">
+                            {{ model.count }}
+                        </span>
+                    </div>
+                    <a href="{% url model.url %}" class="btn btn-sm w-100" style="background-color: var(--kengen-orange); color: white; border: none;">
+                        <i class="bi bi-upload"></i> Bulk Upload
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- User Management -->
+    <div class="card mb-4">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--kengen-purple) 0%, var(--kengen-blue) 100%); color: white;">
+            <h5 class="mb-0"><i class="bi bi-link-45deg"></i> User Management</h5>
+        </div>
+        <div class="card-body">
+            <h6 class="mb-3">Manage User-Employee Links</h6>
+            <p class="text-muted">Link user accounts to employee records. When users sign up with their staff number, they're automatically linked.</p>
+            <a href="{% url 'tenders:manage_user_employee_links' %}" class="btn btn-primary">
+                <i class="bi bi-link-45deg"></i> Manage Links
+            </a>
+        </div>
+    </div>
+
+    <!-- Role Information -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <i class="bi bi-people"></i> Role-Based Access Control
+        </div>
+        <div class="card-body">
+            <h6>User Roles:</h6>
+            <ul>
+                <li><strong>Tender Admin:</strong> Full access to bulk upload and manage all lookup data</li>
+                <li><strong>Tender Manager:</strong> View and create tenders, manage team members</li>
+                <li><strong>Tender Staff:</strong> View tenders and basic data entry</li>
+                <li><strong>Superuser:</strong> Complete system access including Django admin</li>
+            </ul>
+            <div class="alert alert-warning mb-0 mt-3">
+                <i class="bi bi-exclamation-triangle"></i>
+                Only users with <strong>Tender Admin</strong> or <strong>Superuser</strong> roles can access this custom admin panel.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,498 @@
+{% extends 'tenders/base.html' %}
+
+{% block title %}{% if is_edit %}Edit Tender{% else %}Add New Tender{% endif %} - KenGen Tender Tracking System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .form-section-header {
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-section-header h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--dark-text);
+        margin: 0;
+    }
+    
+    .form-section-header p {
+        color: var(--secondary-color);
+        margin: 0.5rem 0 0 0;
+        font-size: 0.9rem;
+    }
+    
+    .required-field label::after {
+        content: " *";
+        color: var(--danger-color);
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(0,86,179,0.25);
+    }
+    
+    .formset-row {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid #dee2e6;
+        position: relative;
+    }
+    
+    .formset-row.deleted {
+        opacity: 0.5;
+        background: #ffe5e5;
+    }
+    
+    .formset-delete-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+    
+    .add-formset-btn {
+        margin-top: 1rem;
+    }
+    
+    .sticky-actions {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 1.5rem;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+        border-radius: 0.75rem;
+        margin-top: 2rem;
+        z-index: 100;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+    }
+    
+    .errorlist li {
+        color: var(--danger-color);
+        font-size: 0.875rem;
+        padding: 0.25rem 0;
+    }
+    
+    .formset-empty {
+        text-align: center;
+        padding: 2rem;
+        color: var(--secondary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tenders:landing' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tenders:tender_list' %}">Tenders</a></li>
+            {% if is_edit %}
+            <li class="breadcrumb-item"><a href="{% url 'tenders:tender_detail' tender.pk %}">{{ tender.tender_id }}</a></li>
+            <li class="breadcrumb-item active">Edit</li>
+            {% else %}
+            <li class="breadcrumb-item active">Add New</li>
+            {% endif %}
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-4">
+        <h1 class="fw-bold">
+            <i class="bi bi-{% if is_edit %}pencil{% else %}plus-circle{% endif %}"></i>
+            {% if is_edit %}Edit Tender: {{ tender.tender_id }}{% else %}Add New Tender{% endif %}
+        </h1>
+        <p class="text-muted">{% if is_edit %}Update tender information and committee members{% else %}Fill in the form below to create a new tender{% endif %}</p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Form -->
+    <form method="post" id="tender-form">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3><i class="bi bi-info-circle"></i> Basic Information</h3>
+                <p>Enter the tender identification and reference details</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3 required-field">
+                    <label for="{{ form.tender_id.id_for_label }}" class="form-label">{{ form.tender_id.label }}</label>
+                    {{ form.tender_id }}
+                    {% if form.tender_id.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.tender_id.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.shopping_cart.id_for_label }}" class="form-label">{{ form.shopping_cart.label }}</label>
+                    {{ form.shopping_cart }}
+                    {% if form.shopping_cart.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.shopping_cart.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.egp_tender_reference.id_for_label }}" class="form-label">{{ form.egp_tender_reference.label }}</label>
+                    {{ form.egp_tender_reference }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.kengen_tender_reference.id_for_label }}" class="form-label">{{ form.kengen_tender_reference.label }}</label>
+                    {{ form.kengen_tender_reference }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.requisition_number.id_for_label }}" class="form-label">{{ form.requisition_number.label }}</label>
+                    {{ form.requisition_number }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.procurement_type.id_for_label }}" class="form-label">{{ form.procurement_type.label }}</label>
+                    {{ form.procurement_type }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3><i class="bi bi-file-text"></i> Tender Description</h3>
+                <p>Provide a detailed description of the tender</p>
+            </div>
+            
+            <div class="mb-3 required-field">
+                <label for="{{ form.tender_description.id_for_label }}" class="form-label">{{ form.tender_description.label }}</label>
+                {{ form.tender_description }}
+                {% if form.tender_description.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.tender_description.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Organization & Assignment -->
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3><i class="bi bi-building"></i> Organization & Assignment</h3>
+                <p>Select the organizational structure and assigned personnel</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.region.id_for_label }}" class="form-label">{{ form.region.label }}</label>
+                    {{ form.region }}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.department.id_for_label }}" class="form-label">{{ form.department.label }}</label>
+                    {{ form.department }}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.section.id_for_label }}" class="form-label">{{ form.section.label }}</label>
+                    {{ form.section }}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.user.id_for_label }}" class="form-label">{{ form.user.label }}</label>
+                    {{ form.user }}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.tender_creator.id_for_label }}" class="form-label">{{ form.tender_creator.label }}</label>
+                    {{ form.tender_creator }}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.contract_creator.id_for_label }}" class="form-label">{{ form.contract_creator.label }}</label>
+                    {{ form.contract_creator }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline & Dates -->
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3><i class="bi bi-calendar-event"></i> Timeline & Important Dates</h3>
+                <p>Set the tender timeline and important dates</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.tender_advert_date.id_for_label }}" class="form-label">{{ form.tender_advert_date.label }}</label>
+                    {{ form.tender_advert_date }}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.tender_closing_date.id_for_label }}" class="form-label">{{ form.tender_closing_date.label }}</label>
+                    {{ form.tender_closing_date }}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.tender_closing_time.id_for_label }}" class="form-label">{{ form.tender_closing_time.label }}</label>
+                    {{ form.tender_closing_time }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.tender_validity_expiry_date.id_for_label }}" class="form-label">{{ form.tender_validity_expiry_date.label }}</label>
+                    {{ form.tender_validity_expiry_date }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.tender_evaluation_duration.id_for_label }}" class="form-label">{{ form.tender_evaluation_duration.label }}</label>
+                    {{ form.tender_evaluation_duration }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Status & Contract -->
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3><i class="bi bi-flag"></i> Status & Contract Information</h3>
+                <p>Set the current status and contract details</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.loa_status.id_for_label }}" class="form-label">{{ form.loa_status.label }}</label>
+                    {{ form.loa_status }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.contract_status.id_for_label }}" class="form-label">{{ form.contract_status.label }}</label>
+                    {{ form.contract_status }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.e_purchase_order_no.id_for_label }}" class="form-label">{{ form.e_purchase_order_no.label }}</label>
+                    {{ form.e_purchase_order_no }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.sap_purchase_order_no.id_for_label }}" class="form-label">{{ form.sap_purchase_order_no.label }}</label>
+                    {{ form.sap_purchase_order_no }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Information -->
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3><i class="bi bi-currency-dollar"></i> Financial Information</h3>
+                <p>Enter the estimated tender value</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.estimated_value.id_for_label }}" class="form-label">{{ form.estimated_value.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text">KSh</span>
+                        {{ form.estimated_value }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Opening Committee -->
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3><i class="bi bi-people"></i> Tender Opening Committee</h3>
+                <p>Add members to the tender opening committee</p>
+            </div>
+            
+            {{ opening_formset.management_form }}
+            <div id="opening-formset">
+                {% for form in opening_formset %}
+                <div class="formset-row {% if form.DELETE.value %}deleted{% endif %}" data-formset-form>
+                    {% if form.DELETE %}
+                    <button type="button" class="btn btn-sm btn-danger formset-delete-btn" onclick="toggleFormsetDelete(this)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Employee</label>
+                            {{ form.employee }}
+                            {{ form.id }}
+                        </div>
+                        <div class="col-md-5 mb-2">
+                            <label class="form-label">Role</label>
+                            {{ form.role }}
+                        </div>
+                        <div class="col-md-1 mb-2">
+                            {% if form.DELETE %}
+                            <label class="form-label d-block">&nbsp;</label>
+                            {{ form.DELETE }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not opening_formset %}
+                <div class="formset-empty">
+                    <i class="bi bi-person-plus" style="font-size: 2rem; color: #dee2e6;"></i>
+                    <p>No committee members yet. Click "Add Member" to add one.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Evaluation Committee -->
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3><i class="bi bi-people"></i> Tender Evaluation Committee</h3>
+                <p>Add members to the tender evaluation committee</p>
+            </div>
+            
+            {{ evaluation_formset.management_form }}
+            <div id="evaluation-formset">
+                {% for form in evaluation_formset %}
+                <div class="formset-row {% if form.DELETE.value %}deleted{% endif %}" data-formset-form>
+                    {% if form.DELETE %}
+                    <button type="button" class="btn btn-sm btn-danger formset-delete-btn" onclick="toggleFormsetDelete(this)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Employee</label>
+                            {{ form.employee }}
+                            {{ form.id }}
+                        </div>
+                        <div class="col-md-5 mb-2">
+                            <label class="form-label">Role</label>
+                            {{ form.role }}
+                        </div>
+                        <div class="col-md-1 mb-2">
+                            {% if form.DELETE %}
+                            <label class="form-label d-block">&nbsp;</label>
+                            {{ form.DELETE }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not evaluation_formset %}
+                <div class="formset-empty">
+                    <i class="bi bi-person-plus" style="font-size: 2rem; color: #dee2e6;"></i>
+                    <p>No committee members yet. Click "Add Member" to add one.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="sticky-actions">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% if is_edit %}{% url 'tenders:tender_detail' tender.pk %}{% else %}{% url 'tenders:tender_list' %}{% endif %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+                <div>
+                    <button type="submit" class="btn btn-lg" style="background-color: var(--kengen-blue); color: white; border: none;">
+                        <i class="bi bi-{% if is_edit %}check{% else %}plus{% endif %}-circle"></i> 
+                        {% if is_edit %}Update Tender{% else %}Create Tender{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleFormsetDelete(btn) {
+    const formsetRow = btn.closest('[data-formset-form]');
+    const deleteCheckbox = formsetRow.querySelector('input[name$="-DELETE"]');
+    
+    if (deleteCheckbox) {
+        deleteCheckbox.checked = !deleteCheckbox.checked;
+        formsetRow.classList.toggle('deleted');
+        
+        if (deleteCheckbox.checked) {
+            btn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i>';
+            btn.classList.remove('btn-danger');
+            btn.classList.add('btn-warning');
+        } else {
+            btn.innerHTML = '<i class="bi bi-trash"></i>';
+            btn.classList.remove('btn-warning');
+            btn.classList.add('btn-danger');
+        }
+    }
+}
+
+// Form validation
+document.getElementById('tender-form').addEventListener('submit', function(e) {
+    const requiredFields = this.querySelectorAll('.required-field input, .required-field textarea, .required-field select');
+    let isValid = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            isValid = false;
+            field.classList.add('is-invalid');
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    if (!isValid) {
+        e.preventDefault();
+        alert('Please fill in all required fields (marked with *)');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+});
+</script>
+{% endblock %}

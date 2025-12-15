@@ -1,0 +1,188 @@
+{% extends "tenders/base.html" %}
+
+{% block title %}Manage User-Employee Links - KenGen Tender Tracking{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold"><i class="bi bi-link-45deg"></i> User-Employee Links</h1>
+            <p class="text-muted">Manage associations between user accounts and employee records</p>
+        </div>
+        <a href="{% url 'tenders:custom_admin_dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Admin
+        </a>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>How it works:</strong> When users sign up with their staff number as username, they are automatically linked to their employee record. Use this page to manually link/unlink users.
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-primary">{{ users|length }}</h3>
+                    <p class="mb-0">Total Users</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-success">{{ users|length|add:unlinked_users|length|add:"-"|add:unlinked_users|length }}</h3>
+                    <p class="mb-0">Linked Users</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-warning">{{ unlinked_employees|length }}</h3>
+                    <p class="mb-0">Unlinked Employees</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Users -->
+    <div class="card mb-4">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--kengen-purple) 0%, var(--kengen-blue) 100%); color: white;">
+            <h5 class="mb-0"><i class="bi bi-people"></i> All Users & Their Links</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Username (Staff #)</th>
+                            <th>User Name</th>
+                            <th>Email</th>
+                            <th>Linked Employee</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td><strong>{{ user.username }}</strong></td>
+                            <td>{{ user.get_full_name|default:"N/A" }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                {% if user.profile.employee %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-link"></i> {{ user.profile.employee.full_name }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-exclamation-triangle"></i> Not Linked
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_superuser %}
+                                <span class="badge bg-danger">Superuser</span>
+                                {% else %}
+                                {% for group in user.groups.all %}
+                                <span class="badge bg-secondary">{{ group.name }}</span>
+                                {% endfor %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#linkModal{{ user.id }}">
+                                    <i class="bi bi-pencil"></i> Manage Link
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Link Modal -->
+                        <div class="modal fade" id="linkModal{{ user.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Link User: {{ user.username }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form method="post" action="{% url 'tenders:link_user_to_employee' user.id %}">
+                                        {% csrf_token %}
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">Select Employee</label>
+                                                <select name="employee_id" class="form-select">
+                                                    <option value="">-- Unlink (No Employee) --</option>
+                                                    {% for emp in unlinked_employees %}
+                                                    <option value="{{ emp.id }}" {% if user.profile.employee and user.profile.employee.id == emp.id %}selected{% endif %}>
+                                                        {{ emp.employee_id }} - {{ emp.full_name }}
+                                                    </option>
+                                                    {% endfor %}
+                                                    {% if user.profile.employee %}
+                                                    <option value="{{ user.profile.employee.id }}" selected>
+                                                        {{ user.profile.employee.employee_id }} - {{ user.profile.employee.full_name }} (Current)
+                                                    </option>
+                                                    {% endif %}
+                                                </select>
+                                            </div>
+                                            <div class="alert alert-info small mb-0">
+                                                <i class="bi bi-info-circle"></i>
+                                                Linking will associate this user account with the selected employee record.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Save Link</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unlinked Employees -->
+    {% if unlinked_employees %}
+    <div class="card">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Employees Without User Accounts</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Staff #</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in unlinked_employees %}
+                        <tr>
+                            <td><strong>{{ emp.employee_id }}</strong></td>
+                            <td>{{ emp.full_name }}</td>
+                            <td>{{ emp.email }}</td>
+                            <td>{{ emp.department.name|default:"N/A" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                These employees can sign up using their staff number to automatically link their account.
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

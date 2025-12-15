@@ -1,0 +1,176 @@
+{% extends "tenders/base.html" %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Add{% endif %} Employee - KenGen Tender Tracking{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tenders:landing' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tenders:employee_list' %}">Employees</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}Add{% endif %} Employee</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-4">
+        <h1 class="fw-bold mb-2">
+            <i class="bi bi-person-{% if is_edit %}gear{% else %}plus{% endif %}"></i> 
+            {% if is_edit %}Edit Employee{% else %}Add New Employee{% endif %}
+        </h1>
+        <p class="text-muted mb-0">
+            {% if is_edit %}Update employee information{% else %}Fill in the form below to add a new employee{% endif %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <div class="card">
+        <div class="card-body p-4">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <!-- Personal Information -->
+                <div class="mb-4">
+                    <h5 class="border-bottom pb-2 mb-3">
+                        <i class="bi bi-person"></i> Personal Information
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.employee_id.id_for_label }}" class="form-label">
+                                Employee ID <span class="text-danger">*</span>
+                            </label>
+                            {{ form.employee_id }}
+                            {% if form.employee_id.errors %}
+                            <div class="text-danger small mt-1">{{ form.employee_id.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                First Name <span class="text-danger">*</span>
+                            </label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.first_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                Last Name <span class="text-danger">*</span>
+                            </label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.last_name.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.job_title.id_for_label }}" class="form-label">
+                                Job Title
+                            </label>
+                            {{ form.job_title }}
+                            {% if form.job_title.errors %}
+                            <div class="text-danger small mt-1">{{ form.job_title.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                                Email
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                            <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                Phone
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                            <div class="text-danger small mt-1">{{ form.phone.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    Active Employee
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Organization -->
+                <div class="mb-4">
+                    <h5 class="border-bottom pb-2 mb-3">
+                        <i class="bi bi-building"></i> Organization
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.department.id_for_label }}" class="form-label">
+                                Department
+                            </label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                            <div class="text-danger small mt-1">{{ form.department.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.division.id_for_label }}" class="form-label">
+                                Division
+                            </label>
+                            {{ form.division }}
+                            {% if form.division.errors %}
+                            <div class="text-danger small mt-1">{{ form.division.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.section.id_for_label }}" class="form-label">
+                                Section
+                            </label>
+                            {{ form.section }}
+                            {% if form.section.errors %}
+                            <div class="text-danger small mt-1">{{ form.section.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{% url 'tenders:employee_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-lg" style="background-color: var(--kengen-blue); color: white; border: none;">
+                        <i class="bi bi-{% if is_edit %}check{% else %}plus{% endif %}-circle"></i> 
+                        {% if is_edit %}Update Employee{% else %}Add Employee{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
