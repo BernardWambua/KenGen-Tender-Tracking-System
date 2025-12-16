@@ -53,10 +53,10 @@ class ProcurementTypeUploadForm(BulkUploadForm):
 
 
 class LOAStatusUploadForm(BulkUploadForm):
-    """Form for uploading LOA statuses in bulk. Expected columns: name"""
+    """Form for uploading e-Contract Stepes in bulk. Expected columns: name"""
     pass
 
 
 class ContractStatusUploadForm(BulkUploadForm):
-    """Form for uploading contract statuses in bulk. Expected columns: name"""
+    """Form for uploading e-Contract Statuses in bulk. Expected columns: name"""
     pass

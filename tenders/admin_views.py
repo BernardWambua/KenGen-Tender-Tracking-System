@@ -20,7 +20,7 @@ from .bulk_upload_forms import (
 # Role-based access control decorators
 def is_admin_or_superuser(user):
     """Check if user is admin or superuser"""
-    return user.is_superuser or user.groups.filter(name='Tender Admin').exists()
+    return user.is_superuser or user.groups.filter(name='Admin').exists()
 
 
 def is_manager_or_above(user):
@@ -36,17 +36,17 @@ def is_staff_or_above(user):
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def custom_admin_dashboard(request):
-    """Custom admin dashboard with bulk upload options"""
+    """Admin dashboard with bulk upload options"""
     context = {
-        'title': 'Custom Admin Panel',
+        'title': 'Admin Panel',
         'lookup_models': [
             {'name': 'Region', 'url': 'tenders:bulk_upload_region', 'count': Region.objects.count()},
             {'name': 'Department', 'url': 'tenders:bulk_upload_department', 'count': Department.objects.count()},
             {'name': 'Division', 'url': 'tenders:bulk_upload_division', 'count': Division.objects.count()},
             {'name': 'Section', 'url': 'tenders:bulk_upload_section', 'count': Section.objects.count()},
             {'name': 'Procurement Type', 'url': 'tenders:bulk_upload_procurement_type', 'count': ProcurementType.objects.count()},
-            {'name': 'LOA Status', 'url': 'tenders:bulk_upload_loa_status', 'count': LOAStatus.objects.count()},
-            {'name': 'Contract Status', 'url': 'tenders:bulk_upload_contract_status', 'count': ContractStatus.objects.count()},
+            {'name': 'e-Contract Step', 'url': 'tenders:bulk_upload_loa_status', 'count': LOAStatus.objects.count()},
+            {'name': 'e-Contract Status', 'url': 'tenders:bulk_upload_contract_status', 'count': ContractStatus.objects.count()},
         ]
     }
     return render(request, 'tenders/admin/dashboard.html', context)
@@ -54,15 +54,34 @@ def custom_admin_dashboard(request):
 
 def process_csv_file(file, columns):
     """Process CSV file and return list of dictionaries"""
-    decoded_file = file.read().decode('utf-8')
+    decoded_file = file.read().decode('utf-8-sig')  # Handle BOM
     io_string = io.StringIO(decoded_file)
     reader = csv.DictReader(io_string)
     
-    # Validate headers
-    if not all(col in reader.fieldnames for col in columns):
-        raise ValueError(f"CSV must contain columns: {', '.join(columns)}")
-    
-    return list(reader)
+    # Normalize headers (strip whitespace and lowercase)
+    if reader.fieldnames:
+        normalized_fieldnames = {field.strip().lower(): field for field in reader.fieldnames if field}
+        required_columns_lower = [col.lower() for col in columns]
+        
+        # Validate headers
+        missing_columns = [col for col in required_columns_lower if col not in normalized_fieldnames]
+        if missing_columns:
+            raise ValueError(f"CSV must contain columns: {', '.join(columns)}. Found: {', '.join(reader.fieldnames)}")
+        
+        # Create mapping from normalized to original column names
+        column_mapping = {normalized_fieldnames[col.lower()]: col for col in columns}
+        
+        # Process rows with normalized column names
+        data = []
+        for row in reader:
+            normalized_row = {}
+            for original_col, target_col in column_mapping.items():
+                normalized_row[target_col] = row.get(original_col, '').strip() if row.get(original_col) else ''
+            data.append(normalized_row)
+        
+        return data
+    else:
+        raise ValueError(f"CSV file has no headers")
 
 
 def process_excel_file(file, columns):
@@ -70,18 +89,28 @@ def process_excel_file(file, columns):
     wb = load_workbook(file)
     ws = wb.active
     
-    # Get headers from first row
-    headers = [cell.value for cell in ws[1]]
+    # Get headers from first row and normalize them
+    headers = [str(cell.value).strip() if cell.value else '' for cell in ws[1]]
+    normalized_headers = {h.lower(): h for h in headers if h}
+    required_columns_lower = [col.lower() for col in columns]
     
     # Validate headers
-    if not all(col in headers for col in columns):
-        raise ValueError(f"Excel file must contain columns: {', '.join(columns)}")
+    missing_columns = [col for col in required_columns_lower if col not in normalized_headers]
+    if missing_columns:
+        raise ValueError(f"Excel file must contain columns: {', '.join(columns)}. Found: {', '.join(headers)}")
     
-    # Create list of dictionaries
+    # Create mapping from normalized to original column names
+    column_mapping = {normalized_headers[col.lower()]: col for col in columns}
+    
+    # Create list of dictionaries with normalized column names
     data = []
     for row in ws.iter_rows(min_row=2, values_only=True):
-        row_dict = {headers[i]: row[i] for i in range(len(headers)) if i < len(row)}
-        data.append(row_dict)
+        normalized_row = {}
+        for i, header in enumerate(headers):
+            if header in column_mapping and i < len(row):
+                value = row[i]
+                normalized_row[column_mapping[header]] = str(value).strip() if value else ''
+        data.append(normalized_row)
     
     return data
 
@@ -100,21 +129,21 @@ def bulk_upload_region(request):
             try:
                 # Process file based on extension
                 if file_ext == 'csv':
-                    data = process_csv_file(file, ['name', 'code'])
+                    data = process_csv_file(file, ['name'])
                 else:
-                    data = process_excel_file(file, ['name', 'code'])
+                    data = process_excel_file(file, ['name'])
                 
                 # Create or update regions
                 created_count = 0
                 updated_count = 0
                 
                 for row in data:
-                    if not row.get('name') or not row.get('code'):
+                    if not row.get('name'):
                         continue
                     
                     region, created = Region.objects.update_or_create(
-                        code=row['code'],
-                        defaults={'name': row['name']}
+                        name=row['name'],
+                        defaults={}
                     )
                     
                     if created:
@@ -134,8 +163,8 @@ def bulk_upload_region(request):
         'form': form,
         'title': 'Bulk Upload Regions',
         'model_name': 'Region',
-        'required_columns': 'name, code',
-        'example_data': 'Western Region,WR\nEastern Region,ER\nCentral Region,CR'
+        'required_columns': 'name',
+        'example_data': 'Western Region\nEastern Region\nCentral Region'
     }
     return render(request, 'tenders/admin/bulk_upload.html', context)
 
@@ -153,20 +182,20 @@ def bulk_upload_department(request):
             
             try:
                 if file_ext == 'csv':
-                    data = process_csv_file(file, ['name', 'code'])
+                    data = process_csv_file(file, ['name'])
                 else:
-                    data = process_excel_file(file, ['name', 'code'])
+                    data = process_excel_file(file, ['name'])
                 
                 created_count = 0
                 updated_count = 0
                 
                 for row in data:
-                    if not row.get('name') or not row.get('code'):
+                    if not row.get('name'):
                         continue
                     
                     department, created = Department.objects.update_or_create(
-                        code=row['code'],
-                        defaults={'name': row['name']}
+                        name=row['name'],
+                        defaults={}
                     )
                     
                     if created:
@@ -186,8 +215,8 @@ def bulk_upload_department(request):
         'form': form,
         'title': 'Bulk Upload Departments',
         'model_name': 'Department',
-        'required_columns': 'name, code',
-        'example_data': 'Human Resources,HR\nFinance,FIN\nProcurement,PROC'
+        'required_columns': 'name',
+        'example_data': 'Human Resources\nFinance\nProcurement'
     }
     return render(request, 'tenders/admin/bulk_upload.html', context)
 
@@ -205,37 +234,38 @@ def bulk_upload_division(request):
             
             try:
                 if file_ext == 'csv':
-                    data = process_csv_file(file, ['name', 'code', 'department_code'])
+                    data = process_csv_file(file, ['name', 'department_name'])
                 else:
-                    data = process_excel_file(file, ['name', 'code', 'department_code'])
+                    data = process_excel_file(file, ['name', 'department_name'])
                 
                 created_count = 0
                 updated_count = 0
                 errors = []
                 
                 for row in data:
-                    if not row.get('name') or not row.get('code'):
+                    if not row.get('name'):
                         continue
                     
                     try:
                         department = None
-                        if row.get('department_code'):
-                            department = Department.objects.get(code=row['department_code'])
+                        if row.get('department_name'):
+                            department = Department.objects.get(name=row['department_name'])
                         
-                        division, created = Division.objects.update_or_create(
-                            code=row['code'],
-                            defaults={
-                                'name': row['name'],
-                                'department': department
-                            }
-                        )
-                        
-                        if created:
-                            created_count += 1
+                        if department:
+                            division, created = Division.objects.update_or_create(
+                                name=row['name'],
+                                department=department,
+                                defaults={}
+                            )
+                            
+                            if created:
+                                created_count += 1
+                            else:
+                                updated_count += 1
                         else:
-                            updated_count += 1
+                            errors.append(f"Department not specified for division '{row['name']}'")
                     except Department.DoesNotExist:
-                        errors.append(f"Department with code '{row.get('department_code')}' not found for division '{row['name']}'")
+                        errors.append(f"Department '{row.get('department_name')}' not found for division '{row['name']}'")
                 
                 if errors:
                     for error in errors:
@@ -253,8 +283,8 @@ def bulk_upload_division(request):
         'form': form,
         'title': 'Bulk Upload Divisions',
         'model_name': 'Division',
-        'required_columns': 'name, code, department_code',
-        'example_data': 'Operations Division,OPS,PROC\nStrategic Division,STRAT,HR'
+        'required_columns': 'name, department_name',
+        'example_data': 'Operations Division,Procurement\nStrategic Division,Human Resources'
     }
     return render(request, 'tenders/admin/bulk_upload.html', context)
 
@@ -272,37 +302,47 @@ def bulk_upload_section(request):
             
             try:
                 if file_ext == 'csv':
-                    data = process_csv_file(file, ['name', 'code', 'division_code'])
+                    data = process_csv_file(file, ['name', 'division_name'])
                 else:
-                    data = process_excel_file(file, ['name', 'code', 'division_code'])
+                    data = process_excel_file(file, ['name', 'division_name'])
                 
                 created_count = 0
                 updated_count = 0
                 errors = []
                 
                 for row in data:
-                    if not row.get('name') or not row.get('code'):
+                    if not row.get('name'):
                         continue
                     
                     try:
                         division = None
-                        if row.get('division_code'):
-                            division = Division.objects.get(code=row['division_code'])
+                        if row.get('division_name'):
+                            # Try to find division by name (might need department context)
+                            divisions = Division.objects.filter(name=row['division_name'])
+                            if divisions.count() == 1:
+                                division = divisions.first()
+                            elif divisions.count() > 1:
+                                errors.append(f"Multiple divisions found with name '{row['division_name']}' for section '{row['name']}'. Please be more specific.")
+                                continue
+                            else:
+                                errors.append(f"Division '{row['division_name']}' not found for section '{row['name']}'")
+                                continue
                         
-                        section, created = Section.objects.update_or_create(
-                            code=row['code'],
-                            defaults={
-                                'name': row['name'],
-                                'division': division
-                            }
-                        )
-                        
-                        if created:
-                            created_count += 1
+                        if division:
+                            section, created = Section.objects.update_or_create(
+                                name=row['name'],
+                                division=division,
+                                defaults={}
+                            )
+                            
+                            if created:
+                                created_count += 1
+                            else:
+                                updated_count += 1
                         else:
-                            updated_count += 1
+                            errors.append(f"Division not specified for section '{row['name']}'")
                     except Division.DoesNotExist:
-                        errors.append(f"Division with code '{row.get('division_code')}' not found for section '{row['name']}'")
+                        errors.append(f"Division '{row.get('division_name')}' not found for section '{row['name']}'")
                 
                 if errors:
                     for error in errors:
@@ -320,8 +360,8 @@ def bulk_upload_section(request):
         'form': form,
         'title': 'Bulk Upload Sections',
         'model_name': 'Section',
-        'required_columns': 'name, code, division_code',
-        'example_data': 'Tender Management,TM,OPS\nContract Admin,CA,OPS'
+        'required_columns': 'name, division_name',
+        'example_data': 'Tender Management,Operations Division\nContract Admin,Operations Division'
     }
     return render(request, 'tenders/admin/bulk_upload.html', context)
 
@@ -339,20 +379,20 @@ def bulk_upload_procurement_type(request):
             
             try:
                 if file_ext == 'csv':
-                    data = process_csv_file(file, ['name', 'code'])
+                    data = process_csv_file(file, ['name'])
                 else:
-                    data = process_excel_file(file, ['name', 'code'])
+                    data = process_excel_file(file, ['name'])
                 
                 created_count = 0
                 updated_count = 0
                 
                 for row in data:
-                    if not row.get('name') or not row.get('code'):
+                    if not row.get('name'):
                         continue
                     
                     proc_type, created = ProcurementType.objects.update_or_create(
-                        code=row['code'],
-                        defaults={'name': row['name']}
+                        name=row['name'],
+                        defaults={}
                     )
                     
                     if created:
@@ -372,8 +412,8 @@ def bulk_upload_procurement_type(request):
         'form': form,
         'title': 'Bulk Upload Procurement Types',
         'model_name': 'Procurement Type',
-        'required_columns': 'name, code',
-        'example_data': 'Open Tender,OT\nRestricted Tender,RT\nDirect Procurement,DP'
+        'required_columns': 'name',
+        'example_data': 'Open Tender\nRestricted Tender\nDirect Procurement'
     }
     return render(request, 'tenders/admin/bulk_upload.html', context)
 
@@ -382,7 +422,7 @@ def bulk_upload_procurement_type(request):
 @user_passes_test(is_admin_or_superuser)
 @require_http_methods(["GET", "POST"])
 def bulk_upload_loa_status(request):
-    """Bulk upload LOA statuses from CSV/Excel"""
+    """Bulk upload e-Contract Stepes from CSV/Excel"""
     if request.method == 'POST':
         form = LOAStatusUploadForm(request.POST, request.FILES)
         if form.is_valid():
@@ -411,7 +451,7 @@ def bulk_upload_loa_status(request):
                     else:
                         updated_count += 1
                 
-                messages.success(request, f'Successfully processed {created_count} new LOA statuses.')
+                messages.success(request, f'Successfully processed {created_count} new e-Contract Stepes.')
                 return redirect('tenders:custom_admin_dashboard')
                 
             except Exception as e:
@@ -421,8 +461,8 @@ def bulk_upload_loa_status(request):
     
     context = {
         'form': form,
-        'title': 'Bulk Upload LOA Statuses',
-        'model_name': 'LOA Status',
+        'title': 'Bulk Upload e-Contract Stepes',
+        'model_name': 'e-Contract Step',
         'required_columns': 'name',
         'example_data': 'Pending\nApproved\nRejected'
     }
@@ -433,7 +473,7 @@ def bulk_upload_loa_status(request):
 @user_passes_test(is_admin_or_superuser)
 @require_http_methods(["GET", "POST"])
 def bulk_upload_contract_status(request):
-    """Bulk upload contract statuses from CSV/Excel"""
+    """Bulk upload e-Contract Statuses from CSV/Excel"""
     if request.method == 'POST':
         form = ContractStatusUploadForm(request.POST, request.FILES)
         if form.is_valid():
@@ -462,7 +502,7 @@ def bulk_upload_contract_status(request):
                     else:
                         updated_count += 1
                 
-                messages.success(request, f'Successfully processed {created_count} new contract statuses.')
+                messages.success(request, f'Successfully processed {created_count} new e-Contract Statuses.')
                 return redirect('tenders:custom_admin_dashboard')
                 
             except Exception as e:
@@ -472,8 +512,8 @@ def bulk_upload_contract_status(request):
     
     context = {
         'form': form,
-        'title': 'Bulk Upload Contract Statuses',
-        'model_name': 'Contract Status',
+        'title': 'Bulk Upload e-Contract Statuses',
+        'model_name': 'e-Contract Status',
         'required_columns': 'name',
         'example_data': 'Active\nExpired\nTerminated'
     }
@@ -484,7 +524,7 @@ def bulk_upload_contract_status(request):
 @user_passes_test(is_admin_or_superuser)
 def manage_user_employee_links(request):
     """View to manage user-employee linkages"""
-    from django.contrib.auth.models import User
+    from django.contrib.auth.models import User, Group
     from .models import UserProfile, Employee
     
     # Ensure all users have profiles (create missing ones)
@@ -495,7 +535,7 @@ def manage_user_employee_links(request):
             UserProfile.objects.create(user=user, employee=employee)
     
     # Get all users with their profiles
-    users = User.objects.select_related('profile', 'profile__employee').all()
+    users = User.objects.select_related('profile', 'profile__employee').prefetch_related('groups').all()
     
     # Get unlinked employees (no user_account)
     unlinked_employees = Employee.objects.filter(user_account__isnull=True, is_active=True)
@@ -503,11 +543,15 @@ def manage_user_employee_links(request):
     # Get users without employee links
     unlinked_users = [u for u in users if not u.profile.employee]
     
+    # Get all available groups
+    all_groups = Group.objects.all().order_by('name')
+    
     context = {
         'title': 'Manage User-Employee Links',
         'users': users,
         'unlinked_employees': unlinked_employees,
         'unlinked_users': unlinked_users,
+        'all_groups': all_groups,
     }
     return render(request, 'tenders/admin/user_employee_links.html', context)
 
@@ -516,13 +560,15 @@ def manage_user_employee_links(request):
 @user_passes_test(is_admin_or_superuser)
 @require_http_methods(["POST"])
 def link_user_to_employee(request, user_id):
-    """Link a user to an employee"""
-    from django.contrib.auth.models import User
+    """Link a user to an employee and assign groups"""
+    from django.contrib.auth.models import User, Group
     from .models import UserProfile, Employee
     
     user = User.objects.get(pk=user_id)
     employee_id = request.POST.get('employee_id')
+    group_ids = request.POST.getlist('groups')  # Get selected group IDs
     
+    # Handle employee linking
     if employee_id:
         try:
             employee = Employee.objects.get(pk=employee_id)
@@ -536,5 +582,22 @@ def link_user_to_employee(request, user_id):
         user.profile.employee = None
         user.profile.save()
         messages.success(request, f'Unlinked {user.username} from employee')
+    
+    # Handle group assignments
+    if group_ids:
+        # Clear existing groups (except superuser-related groups)
+        user.groups.clear()
+        # Add selected groups
+        for group_id in group_ids:
+            try:
+                group = Group.objects.get(pk=group_id)
+                user.groups.add(group)
+            except Group.DoesNotExist:
+                pass
+        messages.success(request, f'Updated group assignments for {user.username}')
+    else:
+        # Clear all groups if none selected
+        user.groups.clear()
+        messages.info(request, f'Removed all group assignments from {user.username}')
     
     return redirect('tenders:manage_user_employee_links')

@@ -25,7 +25,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <h6 class="text-muted mb-1">By LOA Status</h6>
+                            <h6 class="text-muted mb-1">By e-Contract Step</h6>
                             <h3 class="mb-0">{{ tenders_by_loa_status.count }}</h3>
                         </div>
                         <div>
@@ -40,7 +40,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <h6 class="text-muted mb-1">By Contract Status</h6>
+                            <h6 class="text-muted mb-1">By e-Contract Status</h6>
                             <h3 class="mb-0">{{ tenders_by_contract_status.count }}</h3>
                         </div>
                         <div>
@@ -226,10 +226,10 @@
                 </div>
             </div>
 
-            <!-- LOA Status -->
+            <!-- e-Contract Step -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="bi bi-file-check"></i> LOA Status
+                    <i class="bi bi-file-check"></i> e-Contract Step
                 </div>
                 <div class="card-body">
                     {% if tenders_by_loa_status %}
@@ -247,10 +247,10 @@
                 </div>
             </div>
 
-            <!-- Contract Status -->
+            <!-- e-Contract Status -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="bi bi-file-text"></i> Contract Status
+                    <i class="bi bi-file-text"></i> e-Contract Status
                 </div>
                 <div class="card-body">
                     {% if tenders_by_contract_status %}

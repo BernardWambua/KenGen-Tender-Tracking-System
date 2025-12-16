@@ -124,15 +124,15 @@ class LOAStatus(models.Model):
 
     class Meta:
         ordering = ['name']
-        verbose_name = "LOA Status"
-        verbose_name_plural = "LOA Statuses"
+        verbose_name = "e-Contract Step"
+        verbose_name_plural = "e-Contract Steps"
 
     def __str__(self):
         return self.name
 
 
 class ContractStatus(models.Model):
-    """Contract status types"""
+    """e-Contract Status types"""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -140,8 +140,8 @@ class ContractStatus(models.Model):
 
     class Meta:
         ordering = ['name']
-        verbose_name = "Contract Status"
-        verbose_name_plural = "Contract Statuses"
+        verbose_name = "e-Contract Status"
+        verbose_name_plural = "e-Contract Statuses"
 
     def __str__(self):
         return self.name
@@ -211,7 +211,7 @@ class Tender(models.Model):
     tender_evaluation_duration = models.CharField(max_length=50, blank=True, null=True, help_text="e.g., 30 Days, 21 Days")
     
     # Status and contract information
-    loa_status = models.ForeignKey(LOAStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='tenders', verbose_name="LOA Status")
+    loa_status = models.ForeignKey(LOAStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='tenders', verbose_name="e-Contract Step")
     contract_status = models.ForeignKey(ContractStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='tenders')
     
     # Purchase orders

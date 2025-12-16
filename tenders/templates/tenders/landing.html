@@ -129,7 +129,7 @@
                         <i class="bi bi-shield-check" style="font-size: 3rem; color: var(--success-color);"></i>
                     </div>
                     <h5 class="card-title">Status Management</h5>
-                    <p class="card-text text-muted">Monitor LOA status, contract status, and procurement stages throughout the lifecycle.</p>
+                    <p class="card-text text-muted">Monitor e-Contract Step, e-Contract Status, and procurement stages throughout the lifecycle.</p>
                 </div>
             </div>
         </div>
@@ -208,7 +208,7 @@
                     <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
                         {% if tender.loa_status %}
                         <div class="mb-2">
-                            <small class="text-muted">LOA Status:</small>
+                            <small class="text-muted">e-Contract Step:</small>
                             <span class="badge" style="background-color: var(--kengen-red); color: white;">{{ tender.loa_status.name }}</span>
                         </div>
                         {% endif %}

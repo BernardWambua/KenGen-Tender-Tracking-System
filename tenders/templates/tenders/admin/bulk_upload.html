@@ -13,6 +13,25 @@
         </ol>
     </nav>
 
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {% if message.tags == 'success' %}
+                    <i class="bi bi-check-circle-fill"></i>
+                {% elif message.tags == 'error' %}
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                {% else %}
+                    <i class="bi bi-info-circle-fill"></i>
+                {% endif %}
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
     <!-- Header -->
     <div class="mb-4">
         <h1 class="fw-bold mb-2">
@@ -106,10 +125,16 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
 function downloadCSVTemplate() {
-    const csvContent = "{{ required_columns }}\n{{ example_data }}";
+    // Create CSV content with proper line breaks
+    const headers = "{{ required_columns }}";
+    const exampleData = "{{ example_data|escapejs }}";
+    const csvContent = headers + "\n" + exampleData;
+    
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);

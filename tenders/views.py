@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth import login, authenticate
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Count, Q, Sum
 from datetime import datetime, timedelta
 from .models import (
@@ -15,6 +15,15 @@ from .forms import (
 from .auth_forms import SignUpForm
 
 # Create your views here.
+
+# Role-based access control
+def is_admin_or_superuser(user):
+    """Check if user is admin or superuser"""
+    return user.is_superuser or user.groups.filter(name='Admin').exists()
+
+def can_create_edit_tenders(user):
+    """Check if user can create/edit tenders (Admin or Tender Staff)"""
+    return user.is_superuser or user.groups.filter(name__in=['Admin', 'Tender Staff']).exists()
 
 def landing_page(request):
     """Landing page with overview and statistics"""
@@ -178,8 +187,9 @@ def tender_detail(request, pk):
 
 
 @login_required
+@user_passes_test(is_admin_or_superuser)
 def employee_list(request):
-    """List all employees"""
+    """List all employees - Admin only"""
     employees = Employee.objects.select_related(
         'department', 'division', 'section', 'user_account__user'
     ).filter(is_active=True).order_by('last_name', 'first_name')
@@ -210,8 +220,9 @@ def employee_list(request):
 
 
 @login_required
+@user_passes_test(is_admin_or_superuser)
 def employee_create(request):
-    """Create a new employee"""
+    """Create a new employee - Admin only"""
     if request.method == 'POST':
         form = EmployeeForm(request.POST)
         if form.is_valid():
@@ -229,8 +240,9 @@ def employee_create(request):
 
 
 @login_required
+@user_passes_test(is_admin_or_superuser)
 def employee_edit(request, pk):
-    """Edit an existing employee"""
+    """Edit an existing employee - Admin only"""
     employee = get_object_or_404(Employee, pk=pk)
     
     if request.method == 'POST':
@@ -251,8 +263,9 @@ def employee_edit(request, pk):
 
 
 @login_required
+@user_passes_test(is_admin_or_superuser)
 def employee_delete(request, pk):
-    """Delete/deactivate an employee"""
+    """Delete/deactivate an employee - Admin only"""
     employee = get_object_or_404(Employee, pk=pk)
     
     if request.method == 'POST':
@@ -270,8 +283,9 @@ def employee_delete(request, pk):
 
 
 @login_required
+@user_passes_test(can_create_edit_tenders)
 def tender_create(request):
-    """Create a new tender"""
+    """Create a new tender - Admin and Tender Staff only"""
     if request.method == 'POST':
         form = TenderForm(request.POST)
         opening_formset = TenderOpeningCommitteeFormSet(request.POST)
@@ -305,8 +319,9 @@ def tender_create(request):
 
 
 @login_required
+@user_passes_test(can_create_edit_tenders)
 def tender_edit(request, pk):
-    """Edit an existing tender"""
+    """Edit an existing tender - Admin and Tender Staff only"""
     tender = get_object_or_404(Tender, pk=pk)
     
     if request.method == 'POST':
@@ -337,8 +352,9 @@ def tender_edit(request, pk):
 
 
 @login_required
+@user_passes_test(is_admin_or_superuser)
 def tender_delete(request, pk):
-    """Delete a tender"""
+    """Delete a tender - Admin only"""
     tender = get_object_or_404(Tender, pk=pk)
     
     if request.method == 'POST':

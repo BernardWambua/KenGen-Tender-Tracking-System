@@ -17,8 +17,8 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         # Define groups and their permissions
         groups_permissions = {
-            'Tender Admin': {
-                'description': 'Full access to all tender management features and bulk uploads',
+            'Admin': {
+                'description': 'Full access to all features including Admin panel, employees, and bulk uploads',
                 'models': [
                     Tender, Employee, Region, Department, Division, Section,
                     ProcurementType, LOAStatus, ContractStatus,
@@ -26,18 +26,18 @@ class Command(BaseCommand):
                 ],
                 'permissions': ['add', 'change', 'delete', 'view']
             },
-            'Tender Manager': {
-                'description': 'Can create and manage tenders, view lookup data',
+            'Tender Staff': {
+                'description': 'Can create and edit tenders, view lookup data',
                 'models': [Tender, TenderOpeningCommittee, TenderEvaluationCommittee],
                 'permissions': ['add', 'change', 'view'],
                 'view_only': [Region, Department, Division, Section, ProcurementType, LOAStatus, ContractStatus, Employee]
             },
-            'Tender Staff': {
-                'description': 'Can view tenders and basic data entry',
-                'models': [Tender],
-                'permissions': ['add', 'view'],
+            'Staff': {
+                'description': 'View-only access to tenders and lookup data',
+                'models': [],
+                'permissions': [],
                 'view_only': [
-                    Employee, Region, Department, Division, Section,
+                    Tender, Employee, Region, Department, Division, Section,
                     ProcurementType, LOAStatus, ContractStatus,
                     TenderOpeningCommittee, TenderEvaluationCommittee
                 ]
@@ -97,9 +97,15 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS('\n✓ Successfully created all groups and assigned permissions!')
         )
-        self.stdout.write('\nTo assign users to groups, use:')
+        self.stdout.write('\nAvailable groups:')
+        self.stdout.write('  - Admin: Full access to Admin, employees, and bulk uploads')
+        self.stdout.write('  - Tender Staff: Can create and edit tenders')
+        self.stdout.write('  - Staff: View-only access to tenders')
+        self.stdout.write('\nTo assign users to groups via UI:')
+        self.stdout.write('  Navigate to Admin > User-Employee Links')
+        self.stdout.write('\nOr use shell:')
         self.stdout.write('  python manage.py shell')
         self.stdout.write('  >>> from django.contrib.auth.models import User, Group')
         self.stdout.write('  >>> user = User.objects.get(username="username")')
-        self.stdout.write('  >>> group = Group.objects.get(name="Tender Admin")')
+        self.stdout.write('  >>> group = Group.objects.get(name="Admin")')
         self.stdout.write('  >>> user.groups.add(group)')

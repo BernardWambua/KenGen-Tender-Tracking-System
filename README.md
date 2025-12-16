@@ -8,7 +8,7 @@ A full-stack Django application for managing and tracking procurement tenders.
 - **Organizational Structure**: Manage regions, departments, divisions, and sections
 - **Employee Management**: Track employees with their organizational assignments
 - **Committee Management**: One-to-many relationships for tender opening and evaluation committees
-- **Lookup Fields**: Procurement types, LOA status, contract status
+- **Lookup Fields**: Procurement types, e-Contract Step, e-Contract Status
 - **Admin Interface**: Full-featured Django admin for data management
 
 ## Models
@@ -20,7 +20,7 @@ A full-stack Django application for managing and tracking procurement tenders.
 - **Section**: Sections within divisions
 - **ProcurementType**: Types of procurement methods
 - **LOAStatus**: Letter of Award statuses
-- **ContractStatus**: Contract status types
+- **ContractStatus**: e-Contract Status types
 
 ### Core Models
 - **Employee**: Employee information with organizational structure
@@ -77,7 +77,7 @@ The application is designed to manage data with the following fields:
 - Tender Opening Committee, Tender Evaluation Committee
 - Tender Evaluation Duration, Tender Validity Expiry Date
 - Contract Creator
-- LOA (Letter of Award) Status, Contract Status
+- LOA (Letter of Award) Status, e-Contract Status
 - e-Purchase Order No, SAP Purchase Order No
 - Estimated Value
 
@@ -89,7 +89,7 @@ The application is designed to manage data with the following fields:
 2. **Create Departments**: Add organizational departments
 3. **Create Divisions**: Add divisions under departments
 4. **Create Sections**: Add sections under divisions
-5. **Create Lookup Data**: Add procurement types, LOA statuses, contract statuses
+5. **Create Lookup Data**: Add procurement types, e-Contract Stepes, e-Contract Statuses
 
 ### Managing Employees
 
@@ -104,7 +104,7 @@ The application is designed to manage data with the following fields:
 3. Add committee members using the inline forms:
    - Tender Opening Committee members
    - Tender Evaluation Committee members
-4. Track tender progress through LOA and contract statuses
+4. Track tender progress through LOA and e-Contract Statuses
 
 ## Admin Features
 

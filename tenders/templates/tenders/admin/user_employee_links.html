@@ -71,7 +71,13 @@
                         <tr>
                             <td><strong>{{ user.username }}</strong></td>
                             <td>{{ user.get_full_name|default:"N/A" }}</td>
-                            <td>{{ user.email }}</td>
+                            <td>
+                                {% if user.profile.employee and user.profile.employee.email %}
+                                    {{ user.profile.employee.email }}
+                                {% else %}
+                                    {{ user.email|default:"N/A" }}
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if user.profile.employee %}
                                 <span class="badge bg-success">
@@ -111,7 +117,7 @@
                                         {% csrf_token %}
                                         <div class="modal-body">
                                             <div class="mb-3">
-                                                <label class="form-label">Select Employee</label>
+                                                <label class="form-label"><strong>Link to Employee</strong></label>
                                                 <select name="employee_id" class="form-select">
                                                     <option value="">-- Unlink (No Employee) --</option>
                                                     {% for emp in unlinked_employees %}
@@ -126,14 +132,37 @@
                                                     {% endif %}
                                                 </select>
                                             </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label"><strong>Assign to Groups (Roles)</strong></label>
+                                                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                                    {% if all_groups %}
+                                                        {% for group in all_groups %}
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="groups" 
+                                                                   value="{{ group.id }}" id="group{{ user.id }}_{{ group.id }}"
+                                                                   {% if group in user.groups.all %}checked{% endif %}>
+                                                            <label class="form-check-label" for="group{{ user.id }}_{{ group.id }}">
+                                                                {{ group.name }}
+                                                            </label>
+                                                        </div>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <p class="text-muted mb-0"><small>No groups available. Run <code>python manage.py setup_groups</code></small></p>
+                                                    {% endif %}
+                                                </div>
+                                                <small class="text-muted">Select one or more roles for this user</small>
+                                            </div>
+                                            
                                             <div class="alert alert-info small mb-0">
                                                 <i class="bi bi-info-circle"></i>
-                                                Linking will associate this user account with the selected employee record.
+                                                <strong>Employee Link:</strong> Associates user account with employee record.<br>
+                                                <strong>Groups:</strong> Control user permissions (Admin, Manager, Staff, Viewer).
                                             </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-primary">Save Link</button>
+                                            <button type="submit" class="btn btn-primary">Save Changes</button>
                                         </div>
                                     </form>
                                 </div>

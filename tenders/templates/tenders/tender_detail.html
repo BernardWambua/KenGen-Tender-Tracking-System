@@ -1,5 +1,4 @@
-{% extends 'tenders/base.html' %}
-
+{% extends 'tenders/base.html' %}{% load custom_tags %}
 {% block title %}{{ tender.tender_id }} - KenGen Tender Tracking System{% endblock %}
 
 {% block content %}
@@ -36,12 +35,16 @@
             </div>
         </div>
         <div class="d-flex gap-2">
+            {% if user|can_edit_tenders %}
             <a href="{% url 'tenders:tender_edit' tender.pk %}" class="btn btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
+            {% endif %}
+            {% if user|has_group:"Admin" %}
             <a href="{% url 'tenders:tender_delete' tender.pk %}" class="btn btn-danger">
                 <i class="bi bi-trash"></i> Delete
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -240,13 +243,13 @@
                 <div class="card-body">
                     {% if tender.loa_status %}
                     <div class="mb-3">
-                        <small class="text-muted d-block">LOA Status</small>
+                        <small class="text-muted d-block">e-Contract Step</small>
                         <h5><span class="badge" style="background-color: var(--kengen-red); color: white;">{{ tender.loa_status.name }}</span></h5>
                     </div>
                     {% endif %}
                     {% if tender.contract_status %}
                     <div class="mb-0">
-                        <small class="text-muted d-block">Contract Status</small>
+                        <small class="text-muted d-block">e-Contract Status</small>
                         <h5><span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">{{ tender.contract_status.name }}</span></h5>
                     </div>
                     {% endif %}

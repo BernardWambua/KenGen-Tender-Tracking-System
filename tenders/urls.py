@@ -25,7 +25,7 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='tenders/auth/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='tenders:landing'), name='logout'),
     
-    # Custom Admin Panel URLs
+    # Admin Panel URLs
     path('custom-admin/', admin_views.custom_admin_dashboard, name='custom_admin_dashboard'),
     path('custom-admin/bulk-upload/region/', admin_views.bulk_upload_region, name='bulk_upload_region'),
     path('custom-admin/bulk-upload/department/', admin_views.bulk_upload_department, name='bulk_upload_department'),

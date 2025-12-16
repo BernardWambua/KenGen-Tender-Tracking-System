@@ -1,4 +1,5 @@
 {% extends 'tenders/base.html' %}
+{% load custom_tags %}
 
 {% block title %}Tenders - KenGen Tender Tracking System{% endblock %}
 
@@ -8,9 +9,11 @@
         <h1 class="fw-bold">
             <i class="bi bi-file-earmark-text"></i> All Tenders
         </h1>
+        {% if user|can_edit_tenders %}
         <a href="{% url 'tenders:tender_create' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add New Tender
         </a>
+        {% endif %}
     </div>
 
     <!-- Filters -->
@@ -56,7 +59,7 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label"><i class="bi bi-file-check"></i> LOA Status</label>
+                <label class="form-label"><i class="bi bi-file-check"></i> e-Contract Step</label>
                 <select class="form-select" name="loa_status">
                     <option value="">All Status</option>
                     {% for status in loa_statuses %}
@@ -141,13 +144,13 @@
                         <!-- Status Badges -->
                         {% if tender.loa_status %}
                         <div class="mb-2">
-                            <small class="text-muted d-block">LOA Status</small>
+                            <small class="text-muted d-block">e-Contract Step</small>
                             <span class="badge" style="background-color: var(--kengen-red); color: white;">{{ tender.loa_status.name }}</span>
                         </div>
                         {% endif %}
                         {% if tender.contract_status %}
                         <div class="mb-2">
-                            <small class="text-muted d-block">Contract Status</small>
+                            <small class="text-muted d-block">e-Contract Status</small>
                             <span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">{{ tender.contract_status.name }}</span>
                         </div>
                         {% endif %}

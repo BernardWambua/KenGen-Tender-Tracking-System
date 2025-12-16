@@ -32,7 +32,7 @@ class Command(BaseCommand):
                 section = self.get_or_create_section(row.get('Section'), department)
                 procurement_type = self.get_or_create_procurement_type(row.get('Procurement Type'))
                 loa_status = self.get_or_create_loa_status(row.get('LOA (Letter of Award status)'))
-                contract_status = self.get_or_create_contract_status(row.get('Contract Status'))
+                contract_status = self.get_or_create_contract_status(row.get('e-Contract Status'))
                 
                 # Get or create employees
                 tender_creator = self.get_or_create_employee(row.get('Tender Creator'), department)
