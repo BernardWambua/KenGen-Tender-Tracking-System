@@ -1,1 +1,10 @@
-Django>=6.0
+asgiref
+Django
+dotenv
+et_xmlfile
+openpyxl
+psycopg2-binary
+python-decouple
+python-dotenv
+sqlparse
+tzdata
