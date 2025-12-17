@@ -139,3 +139,10 @@ LOGOUT_REDIRECT_URL = 'tenders:landing'
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    'http://172.16.103.129:8080',
+    'http://127.0.0.1:8080',
+    'http://localhost:8080',
+]
