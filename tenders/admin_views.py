@@ -8,12 +8,12 @@ from openpyxl import load_workbook
 
 from .models import (
     Region, Department, Division, Section, 
-    ProcurementType, LOAStatus, ContractStatus
+    ProcurementType, LOAStatus, ContractStatus, Employee
 )
 from .bulk_upload_forms import (
     RegionUploadForm, DepartmentUploadForm, DivisionUploadForm,
     SectionUploadForm, ProcurementTypeUploadForm, LOAStatusUploadForm,
-    ContractStatusUploadForm
+    ContractStatusUploadForm, EmployeeUploadForm
 )
 
 
@@ -47,6 +47,7 @@ def custom_admin_dashboard(request):
             {'name': 'Procurement Type', 'url': 'tenders:bulk_upload_procurement_type', 'count': ProcurementType.objects.count()},
             {'name': 'e-Contract Step', 'url': 'tenders:bulk_upload_loa_status', 'count': LOAStatus.objects.count()},
             {'name': 'e-Contract Status', 'url': 'tenders:bulk_upload_contract_status', 'count': ContractStatus.objects.count()},
+            {'name': 'Employee', 'url': 'tenders:bulk_upload_employee', 'count': Employee.objects.count()},
         ]
     }
     return render(request, 'tenders/admin/dashboard.html', context)
@@ -601,3 +602,99 @@ def link_user_to_employee(request, user_id):
         messages.info(request, f'Removed all group assignments from {user.username}')
     
     return redirect('tenders:manage_user_employee_links')
+
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+@require_http_methods(["GET", "POST"])
+def bulk_upload_employee(request):
+    """Bulk upload employees from CSV/Excel"""
+    if request.method == 'POST':
+        form = EmployeeUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            file = form.cleaned_data['file']
+            file_ext = file.name.split('.')[-1].lower()
+            
+            try:
+                # Required columns for employee upload
+                required_columns = ['employee_id', 'first_name', 'last_name', 'email']
+                
+                if file_ext == 'csv':
+                    data = process_csv_file(file, required_columns + ['phone', 'department_name', 'division_name', 'section_name', 'job_title', 'is_active'])
+                else:
+                    data = process_excel_file(file, required_columns + ['phone', 'department_name', 'division_name', 'section_name', 'job_title', 'is_active'])
+                
+                created_count = 0
+                updated_count = 0
+                skipped_count = 0
+                
+                for row in data:
+                    # Skip rows missing required fields
+                    if not all([row.get('employee_id'), row.get('first_name'), row.get('last_name'), row.get('email')]):
+                        skipped_count += 1
+                        continue
+                    
+                    # Prepare defaults dictionary
+                    defaults = {
+                        'first_name': row['first_name'],
+                        'last_name': row['last_name'],
+                        'email': row['email'],
+                        'phone': row.get('phone', ''),
+                        'job_title': row.get('job_title', ''),
+                        'is_active': row.get('is_active', '').lower() in ['true', '1', 'yes', 'active'] if row.get('is_active') else True,
+                    }
+                    
+                    # Handle department lookup
+                    if row.get('department_name'):
+                        try:
+                            department = Department.objects.get(name__iexact=row['department_name'])
+                            defaults['department'] = department
+                        except Department.DoesNotExist:
+                            pass
+                    
+                    # Handle division lookup
+                    if row.get('division_name'):
+                        try:
+                            division = Division.objects.get(name__iexact=row['division_name'])
+                            defaults['division'] = division
+                        except Division.DoesNotExist:
+                            pass
+                    
+                    # Handle section lookup
+                    if row.get('section_name'):
+                        try:
+                            section = Section.objects.get(name__iexact=row['section_name'])
+                            defaults['section'] = section
+                        except Section.DoesNotExist:
+                            pass
+                    
+                    # Create or update employee
+                    employee, created = Employee.objects.update_or_create(
+                        employee_id=row['employee_id'],
+                        defaults=defaults
+                    )
+                    
+                    if created:
+                        created_count += 1
+                    else:
+                        updated_count += 1
+                
+                message = f'Successfully processed {created_count} new employees and updated {updated_count} existing employees.'
+                if skipped_count > 0:
+                    message += f' Skipped {skipped_count} rows with missing required fields.'
+                messages.success(request, message)
+                return redirect('tenders:custom_admin_dashboard')
+                
+            except Exception as e:
+                messages.error(request, f'Error processing file: {str(e)}')
+    else:
+        form = EmployeeUploadForm()
+    
+    context = {
+        'form': form,
+        'title': 'Bulk Upload Employees',
+        'model_name': 'Employee',
+        'required_columns': 'employee_id, first_name, last_name, email, phone, department_name, division_name, section_name, job_title, is_active',
+        'example_data': 'EMP001,John,Doe,john.doe@kengen.co.ke,0712345678,Finance,Accounts,Payroll,Accountant,true\\nEMP002,Jane,Smith,jane.smith@kengen.co.ke,0723456789,Engineering,Electrical,Generation,Engineer,true'
+    }
+    return render(request, 'tenders/admin/bulk_upload.html', context)

@@ -34,6 +34,7 @@ urlpatterns = [
     path('custom-admin/bulk-upload/procurement-type/', admin_views.bulk_upload_procurement_type, name='bulk_upload_procurement_type'),
     path('custom-admin/bulk-upload/loa-status/', admin_views.bulk_upload_loa_status, name='bulk_upload_loa_status'),
     path('custom-admin/bulk-upload/contract-status/', admin_views.bulk_upload_contract_status, name='bulk_upload_contract_status'),
+    path('custom-admin/bulk-upload/employee/', admin_views.bulk_upload_employee, name='bulk_upload_employee'),
     
     # User-Employee Management
     path('custom-admin/user-employee-links/', admin_views.manage_user_employee_links, name='manage_user_employee_links'),

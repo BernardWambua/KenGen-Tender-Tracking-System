@@ -60,3 +60,8 @@ class LOAStatusUploadForm(BulkUploadForm):
 class ContractStatusUploadForm(BulkUploadForm):
     """Form for uploading e-Contract Statuses in bulk. Expected columns: name"""
     pass
+
+
+class EmployeeUploadForm(BulkUploadForm):
+    """Form for uploading employees in bulk. Expected columns: employee_id, first_name, last_name, email, phone, department_name, division_name, section_name, job_title, is_active"""
+    pass
