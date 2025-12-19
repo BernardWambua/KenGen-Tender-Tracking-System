@@ -15,6 +15,12 @@ urlpatterns = [
     path('tenders/<int:pk>/', views.tender_detail, name='tender_detail'),
     path('tenders/<int:pk>/edit/', views.tender_edit, name='tender_edit'),
     path('tenders/<int:pk>/delete/', views.tender_delete, name='tender_delete'),
+    
+    # Contract URLs
+    path('tenders/<int:tender_pk>/contract/add/', views.contract_create, name='contract_create'),
+    path('tenders/<int:tender_pk>/contract/edit/', views.contract_edit, name='contract_edit'),
+    path('tenders/<int:tender_pk>/contract/delete/', views.contract_delete, name='contract_delete'),
+    
     path('employees/', views.employee_list, name='employee_list'),
     path('employees/add/', views.employee_create, name='employee_create'),
     path('employees/<int:pk>/edit/', views.employee_edit, name='employee_edit'),

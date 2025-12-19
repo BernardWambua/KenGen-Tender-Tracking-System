@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models import (
     Region, Department, Division, Section, ProcurementType,
-    LOAStatus, ContractStatus, Employee, Tender,
-    TenderOpeningCommittee, TenderEvaluationCommittee, UserProfile
+    LOAStatus, ContractStatus, Employee, Tender, Contract,
+    TenderOpeningCommittee, TenderEvaluationCommittee, ContractCITCommittee, UserProfile
 )
 
 # Register your models here.
@@ -99,49 +99,80 @@ class TenderEvaluationCommitteeInline(admin.TabularInline):
     autocomplete_fields = ['employee']
 
 
+class ContractCITCommitteeInline(admin.TabularInline):
+    model = ContractCITCommittee
+    extra = 1
+    autocomplete_fields = ['employee']
+
+
+class ContractInline(admin.StackedInline):
+    model = Contract
+    extra = 0
+    autocomplete_fields = ['contract_creator']
+    fieldsets = (
+        ('Contract Information', {
+            'fields': ('contract_reference', 'contract_creator')
+        }),
+        ('Status', {
+            'fields': ('loa_status', 'contract_status')
+        }),
+        ('Supplier Information', {
+            'fields': ('supplier_name', 'supplier_county')
+        }),
+        ('Purchase Orders', {
+            'fields': ('e_purchase_order_no', 'sap_purchase_order_no')
+        }),
+        ('Contract Dates', {
+            'fields': ('contract_signature_date', 'contract_expiry_date', 'contract_duration', 'contract_delivery_period')
+        }),
+        ('Financial', {
+            'fields': ('contract_value',)
+        }),
+        ('Security', {
+            'fields': ('tender_security_value', 'tender_security_expiry_date', 
+                      'performance_security_amount', 'performance_security_duration', 
+                      'performance_security_expiry_date')
+        }),
+    )
+
+
 # Tender Admin
 @admin.register(Tender)
 class TenderAdmin(admin.ModelAdmin):
     list_display = [
-        'tender_id', 'tender_description_short', 'procurement_type', 
-        'region', 'department', 'tender_advert_date', 'tender_closing_date',
-        'loa_status', 'contract_status', 'estimated_value'
+        'tender_id', 'tender_description_short', 'quarter', 'procurement_type', 
+        'region', 'department', 'tender_status', 'tender_advert_date', 'tender_closing_date',
+        'estimated_value'
     ]
     list_filter = [
-        'procurement_type', 'region', 'department', 'loa_status', 
-        'contract_status', 'tender_advert_date'
+        'quarter', 'tender_status', 'reservation', 'procurement_type', 
+        'region', 'department', 'tender_advert_date'
     ]
     search_fields = [
         'tender_id', 'tender_description', 'egp_tender_reference', 
         'kengen_tender_reference', 'requisition_number'
     ]
-    autocomplete_fields = ['tender_creator', 'contract_creator', 'user']
+    autocomplete_fields = ['tender_creator', 'user']
     readonly_fields = ['created_at', 'updated_at']
     date_hierarchy = 'tender_advert_date'
     
     fieldsets = (
         ('Identification', {
-            'fields': ('tender_id', 'egp_tender_reference', 'kengen_tender_reference', 
+            'fields': ('tender_id', 'quarter', 'egp_tender_reference', 'kengen_tender_reference', 
                       'requisition_number', 'shopping_cart')
         }),
         ('Description & Classification', {
-            'fields': ('tender_description', 'procurement_type')
+            'fields': ('tender_description', 'procurement_type', 'reservation', 'tender_status')
         }),
         ('Location & Assignment', {
             'fields': ('region', 'department', 'section', 'user')
         }),
-        ('Creators', {
-            'fields': ('tender_creator', 'contract_creator')
+        ('Creator', {
+            'fields': ('tender_creator',)
         }),
         ('Important Dates', {
             'fields': ('tender_advert_date', 'tender_closing_date', 'tender_closing_time',
                       'tender_validity_expiry_date', 'tender_evaluation_duration')
-        }),
-        ('Status', {
-            'fields': ('loa_status', 'contract_status')
-        }),
-        ('Purchase Orders', {
-            'fields': ('e_purchase_order_no', 'sap_purchase_order_no')
         }),
         ('Financial', {
             'fields': ('estimated_value',)
@@ -152,11 +183,65 @@ class TenderAdmin(admin.ModelAdmin):
         }),
     )
     
-    inlines = [TenderOpeningCommitteeInline, TenderEvaluationCommitteeInline]
+    inlines = [ContractInline, TenderOpeningCommitteeInline, TenderEvaluationCommitteeInline]
     
     def tender_description_short(self, obj):
         return obj.tender_description[:50] + '...' if len(obj.tender_description) > 50 else obj.tender_description
     tender_description_short.short_description = 'Description'
+
+
+# Contract Admin
+@admin.register(Contract)
+class ContractAdmin(admin.ModelAdmin):
+    list_display = [
+        'tender', 'contract_reference', 'supplier_name', 'loa_status', 'contract_status',
+        'contract_value', 'contract_signature_date'
+    ]
+    list_filter = ['loa_status', 'contract_status', 'contract_signature_date', 'supplier_county']
+    search_fields = [
+        'contract_reference', 'tender__tender_id', 'supplier_name', 'supplier_county',
+        'e_purchase_order_no', 'sap_purchase_order_no'
+    ]
+    autocomplete_fields = ['tender', 'contract_creator']
+    readonly_fields = ['created_at', 'updated_at']
+    date_hierarchy = 'contract_signature_date'
+    
+    fieldsets = (
+        ('Tender Link', {
+            'fields': ('tender',)
+        }),
+        ('Contract Information', {
+            'fields': ('contract_reference', 'contract_creator')
+        }),
+        ('Status', {
+            'fields': ('loa_status', 'contract_status')
+        }),
+        ('Supplier Information', {
+            'fields': ('supplier_name', 'supplier_county')
+        }),
+        ('Purchase Orders', {
+            'fields': ('e_purchase_order_no', 'sap_purchase_order_no')
+        }),
+        ('Contract Dates & Duration', {
+            'fields': ('contract_signature_date', 'contract_expiry_date', 
+                      'contract_duration', 'contract_delivery_period')
+        }),
+        ('Financial', {
+            'fields': ('contract_value',)
+        }),
+        ('Security Details', {
+            'fields': ('tender_security_value', 'tender_security_expiry_date',
+                      'performance_security_amount', 'performance_security_duration',
+                      'performance_security_expiry_date')
+        }),
+        ('Committees', {
+            'fields': ('cit_committee',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 # Committee Admin
@@ -174,3 +259,11 @@ class TenderEvaluationCommitteeAdmin(admin.ModelAdmin):
     list_filter = ['role', 'added_at']
     search_fields = ['tender__tender_id', 'employee__first_name', 'employee__last_name']
     autocomplete_fields = ['tender', 'employee']
+
+
+@admin.register(ContractCITCommittee)
+class ContractCITCommitteeAdmin(admin.ModelAdmin):
+    list_display = ['contract', 'employee', 'role', 'added_at']
+    list_filter = ['role', 'added_at']
+    search_fields = ['contract__tender__tender_id', 'employee__first_name', 'employee__last_name']
+    autocomplete_fields = ['contract', 'employee']

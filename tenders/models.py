@@ -187,9 +187,40 @@ class Tender(models.Model):
     egp_tender_reference = models.CharField(max_length=100, blank=True, null=True, verbose_name="eGP Tender Reference")
     kengen_tender_reference = models.CharField(max_length=100, blank=True, null=True, verbose_name="KenGen Tender Reference")
     
+    # Quarter
+    QUARTER_CHOICES = [
+        ('Q1', 'Quarter 1 (Jul-Sep)'),
+        ('Q2', 'Quarter 2 (Oct-Dec)'),
+        ('Q3', 'Quarter 3 (Jan-Mar)'),
+        ('Q4', 'Quarter 4 (Apr-Jun)'),
+    ]
+    quarter = models.CharField(max_length=2, choices=QUARTER_CHOICES, blank=True, null=True)
+    
     # Description and classification
     tender_description = models.TextField()
     procurement_type = models.ForeignKey(ProcurementType, on_delete=models.SET_NULL, null=True, related_name='tenders')
+    
+    # AGPO/Reservation
+    RESERVATION_CHOICES = [
+        ('AGPO', 'AGPO (Access to Government Procurement Opportunities)'),
+        ('PWD', 'Persons with Disabilities'),
+        ('YOUTH', 'Youth'),
+        ('WOMEN', 'Women'),
+        ('OPEN', 'Open/Not Reserved'),
+    ]
+    reservation = models.CharField(max_length=20, choices=RESERVATION_CHOICES, blank=True, null=True, verbose_name="Reservation (AGPO)")
+    
+    # Tender Status
+    TENDER_STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('PUBLISHED', 'Published'),
+        ('CLOSED', 'Closed'),
+        ('UNDER_EVALUATION', 'Under Evaluation'),
+        ('EVALUATED', 'Evaluated'),
+        ('AWARDED', 'Awarded'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    tender_status = models.CharField(max_length=20, choices=TENDER_STATUS_CHOICES, blank=True, null=True, verbose_name="Tender Status")
     
     # Location and assignment
     region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, related_name='tenders')
@@ -199,7 +230,6 @@ class Tender(models.Model):
     
     # Creators
     tender_creator = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, related_name='created_tenders')
-    contract_creator = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_contracts')
     
     # Important dates
     tender_advert_date = models.DateField(blank=True, null=True)
@@ -209,14 +239,6 @@ class Tender(models.Model):
     
     # Evaluation details
     tender_evaluation_duration = models.CharField(max_length=50, blank=True, null=True, help_text="e.g., 30 Days, 21 Days")
-    
-    # Status and contract information
-    loa_status = models.ForeignKey(LOAStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='tenders', verbose_name="e-Contract Step")
-    contract_status = models.ForeignKey(ContractStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='tenders')
-    
-    # Purchase orders
-    e_purchase_order_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="e-Purchase Order No")
-    sap_purchase_order_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="SAP Purchase Order No")
     
     # Financial
     estimated_value = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
@@ -230,6 +252,58 @@ class Tender(models.Model):
 
     def __str__(self):
         return f"{self.tender_id} - {self.tender_description[:50]}"
+
+
+class Contract(models.Model):
+    """Contract information linked to a tender"""
+    # Link to tender (OneToOne relationship - each tender can have one contract)
+    tender = models.OneToOneField(Tender, on_delete=models.CASCADE, related_name='contract')
+    
+    # Contract reference
+    contract_reference = models.CharField(max_length=100, blank=True, null=True, help_text="Contract reference number")
+    
+    # Contract creator
+    contract_creator = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_contracts')
+    
+    # Status information
+    loa_status = models.ForeignKey(LOAStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='contracts', verbose_name="e-Contract Step")
+    contract_status = models.ForeignKey(ContractStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='contracts')
+    
+    # Purchase orders
+    e_purchase_order_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="e-Purchase Order No")
+    sap_purchase_order_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="SAP Purchase Order No")
+    
+    # Supplier information
+    supplier_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Name of Supplier Awarded")
+    supplier_county = models.CharField(max_length=100, blank=True, null=True, verbose_name="County of Origin")
+    
+    # Contract dates
+    contract_signature_date = models.DateField(blank=True, null=True, verbose_name="Contract Signature Date")
+    contract_expiry_date = models.DateField(blank=True, null=True, verbose_name="Contract Expiry Date")
+    
+    # Contract duration and delivery
+    contract_duration = models.CharField(max_length=100, blank=True, null=True, verbose_name="Contract Duration")
+    contract_delivery_period = models.CharField(max_length=100, blank=True, null=True, verbose_name="Contract Delivery Period")
+    
+    # Contract financial details
+    contract_value = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    
+    # Security information
+    tender_security_value = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    tender_security_expiry_date = models.DateField(blank=True, null=True)
+    performance_security_amount = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    performance_security_duration = models.CharField(max_length=100, blank=True, null=True)
+    performance_security_expiry_date = models.DateField(blank=True, null=True)
+    
+    # Audit fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Contract for {self.tender.tender_id}"
 
 
 class TenderOpeningCommittee(models.Model):
@@ -262,3 +336,19 @@ class TenderEvaluationCommittee(models.Model):
 
     def __str__(self):
         return f"{self.tender.tender_id} - {self.employee.full_name}"
+
+
+class ContractCITCommittee(models.Model):
+    """Many-to-many relationship for contract CIT/Inspection & Acceptance committee members"""
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name='cit_committee_members')
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='cit_committees')
+    role = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., Chairperson, Inspector, Acceptance Officer")
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['contract', 'employee']
+        verbose_name = "CIT/Inspection & Acceptance Committee Member"
+        verbose_name_plural = "CIT/Inspection & Acceptance Committee Members"
+
+    def __str__(self):
+        return f"{self.contract.tender.tender_id} - {self.employee.full_name}"

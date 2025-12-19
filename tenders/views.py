@@ -5,12 +5,13 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Count, Q, Sum
 from datetime import datetime, timedelta
 from .models import (
-    Tender, Employee, Department, Region, 
+    Tender, Contract, Employee, Department, Region, 
     ProcurementType, LOAStatus, ContractStatus
 )
 from .forms import (
     TenderForm, TenderOpeningCommitteeFormSet, 
-    TenderEvaluationCommitteeFormSet, EmployeeForm
+    TenderEvaluationCommitteeFormSet, EmployeeForm,
+    ContractForm, ContractCITCommitteeFormSet
 )
 from .auth_forms import SignUpForm
 
@@ -38,8 +39,8 @@ def landing_page(request):
     
     # Recent tenders
     recent_tenders = Tender.objects.select_related(
-        'procurement_type', 'region', 'department', 'loa_status', 'contract_status'
-    ).order_by('-created_at')[:5]
+        'procurement_type', 'region', 'department'
+    ).prefetch_related('contract').order_by('-created_at')[:5]
     
     context = {
         'total_tenders': total_tenders,
@@ -54,13 +55,13 @@ def landing_page(request):
 @login_required
 def dashboard(request):
     """Dashboard with analytics and charts"""
-    # Tenders by status
+    # Contracts by status
     tenders_by_loa_status = LOAStatus.objects.annotate(
-        count=Count('tenders')
+        count=Count('contracts')
     ).order_by('-count')
     
     tenders_by_contract_status = ContractStatus.objects.annotate(
-        count=Count('tenders')
+        count=Count('contracts')
     ).order_by('-count')
     
     # Tenders by procurement type
@@ -106,8 +107,8 @@ def tender_list(request):
     """List all tenders with filters"""
     tenders = Tender.objects.select_related(
         'procurement_type', 'region', 'department', 'section',
-        'tender_creator', 'loa_status', 'contract_status'
-    ).all()
+        'tender_creator'
+    ).prefetch_related('contract').all()
     
     # Filters
     search_query = request.GET.get('search', '')
@@ -133,11 +134,11 @@ def tender_list(request):
     
     loa_status_filter = request.GET.get('loa_status', '')
     if loa_status_filter:
-        tenders = tenders.filter(loa_status_id=loa_status_filter)
+        tenders = tenders.filter(contract__loa_status_id=loa_status_filter)
     
     contract_status_filter = request.GET.get('contract_status', '')
     if contract_status_filter:
-        tenders = tenders.filter(contract_status_id=contract_status_filter)
+        tenders = tenders.filter(contract__contract_status_id=contract_status_filter)
     
     # For filter dropdowns
     regions = Region.objects.all()
@@ -171,11 +172,11 @@ def tender_detail(request, pk):
     tender = get_object_or_404(
         Tender.objects.select_related(
             'procurement_type', 'region', 'department', 'section',
-            'tender_creator', 'contract_creator', 'user',
-            'loa_status', 'contract_status'
+            'tender_creator', 'user'
         ).prefetch_related(
             'opening_committee_members__employee',
-            'evaluation_committee_members__employee'
+            'evaluation_committee_members__employee',
+            'contract'
         ),
         pk=pk
     )
@@ -394,3 +395,97 @@ def signup(request):
         'form': form,
     }
     return render(request, 'tenders/auth/signup.html', context)
+
+
+@login_required
+@user_passes_test(can_create_edit_tenders)
+def contract_create(request, tender_pk):
+    """Create a contract for a tender - Admin and Tender Staff only"""
+    tender = get_object_or_404(Tender, pk=tender_pk)
+    
+    # Check if contract already exists
+    if hasattr(tender, 'contract'):
+        messages.warning(request, 'This tender already has a contract. Please edit the existing contract.')
+        return redirect('tenders:contract_edit', tender_pk=tender.pk)
+    
+    if request.method == 'POST':
+        form = ContractForm(request.POST)
+        cit_formset = ContractCITCommitteeFormSet(request.POST)
+        
+        if form.is_valid() and cit_formset.is_valid():
+            contract = form.save(commit=False)
+            contract.tender = tender
+            contract.save()
+            
+            # Save CIT committee
+            cit_formset.instance = contract
+            cit_formset.save()
+            
+            messages.success(request, f'Contract for {tender.tender_id} created successfully!')
+            return redirect('tenders:tender_detail', pk=tender.pk)
+    else:
+        # Pre-populate the form with tender reference
+        initial_data = {'tender': tender}
+        form = ContractForm(initial=initial_data)
+        form.fields['tender'].widget.attrs['readonly'] = True
+        cit_formset = ContractCITCommitteeFormSet()
+    
+    context = {
+        'form': form,
+        'cit_formset': cit_formset,
+        'tender': tender,
+        'is_edit': False,
+    }
+    return render(request, 'tenders/contract_form.html', context)
+
+
+@login_required
+@user_passes_test(can_create_edit_tenders)
+def contract_edit(request, tender_pk):
+    """Edit a contract for a tender - Admin and Tender Staff only"""
+    tender = get_object_or_404(Tender, pk=tender_pk)
+    contract = get_object_or_404(Contract, tender=tender)
+    
+    if request.method == 'POST':
+        form = ContractForm(request.POST, instance=contract)
+        cit_formset = ContractCITCommitteeFormSet(request.POST, instance=contract)
+        
+        if form.is_valid() and cit_formset.is_valid():
+            contract = form.save()
+            cit_formset.save()
+            
+            messages.success(request, f'Contract for {tender.tender_id} updated successfully!')
+            return redirect('tenders:tender_detail', pk=tender.pk)
+    else:
+        form = ContractForm(instance=contract)
+        form.fields['tender'].widget.attrs['readonly'] = True
+        cit_formset = ContractCITCommitteeFormSet(instance=contract)
+    
+    context = {
+        'form': form,
+        'cit_formset': cit_formset,
+        'tender': tender,
+        'contract': contract,
+        'is_edit': True,
+    }
+    return render(request, 'tenders/contract_form.html', context)
+
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+def contract_delete(request, tender_pk):
+    """Delete a contract - Admin only"""
+    tender = get_object_or_404(Tender, pk=tender_pk)
+    contract = get_object_or_404(Contract, tender=tender)
+    
+    if request.method == 'POST':
+        contract_ref = contract.contract_reference or f"Contract for {tender.tender_id}"
+        contract.delete()
+        messages.success(request, f'{contract_ref} deleted successfully!')
+        return redirect('tenders:tender_detail', pk=tender.pk)
+    
+    context = {
+        'contract': contract,
+        'tender': tender,
+    }
+    return render(request, 'tenders/contract_confirm_delete.html', context)

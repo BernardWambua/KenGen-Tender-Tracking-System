@@ -231,26 +231,140 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Contract Information -->
+            {% if tender.contract %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-file-earmark-check"></i> Contract Information</span>
+                    {% if user|can_edit_tenders %}
+                    <a href="{% url 'tenders:contract_edit' tender.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-pencil"></i> Edit Contract
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if tender.contract.contract_reference %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Contract Reference</small>
+                            <strong>{{ tender.contract.contract_reference }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.loa_status %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">e-Contract Step</small>
+                            <span class="badge" style="background-color: var(--kengen-red); color: white;">{{ tender.contract.loa_status.name }}</span>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.contract_status %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">e-Contract Status</small>
+                            <span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">{{ tender.contract.contract_status.name }}</span>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.supplier_name %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Supplier Name</small>
+                            <strong>{{ tender.contract.supplier_name }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.supplier_county %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Supplier County</small>
+                            <strong>{{ tender.contract.supplier_county }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.contract_signature_date %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Contract Signature Date</small>
+                            <strong>{{ tender.contract.contract_signature_date|date:"d M Y" }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.contract_expiry_date %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Contract Expiry Date</small>
+                            <strong>{{ tender.contract.contract_expiry_date|date:"d M Y" }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.contract_duration %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Contract Duration</small>
+                            <strong>{{ tender.contract.contract_duration }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.contract_value %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Contract Value</small>
+                            <strong class="text-success">KSh {{ tender.contract.contract_value|floatformat:2 }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.e_purchase_order_no %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">e-Purchase Order No</small>
+                            <strong>{{ tender.contract.e_purchase_order_no }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.sap_purchase_order_no %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">SAP Purchase Order No</small>
+                            <strong>{{ tender.contract.sap_purchase_order_no }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- CIT Committee -->
+                    {% if tender.contract.cit_committee_members.all %}
+                    <hr>
+                    <h6 class="mb-3"><i class="bi bi-people"></i> Contract Inspection & Acceptance Committee</h6>
+                    <ul class="list-group">
+                        {% for member in tender.contract.cit_committee_members.all %}
+                        <li class="list-group-item">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <strong>{{ member.employee.full_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ member.employee.job_title|default:"Staff Member" }}</small>
+                                </div>
+                                {% if member.role %}
+                                <span class="badge" style="background-color: var(--kengen-light-blue); color: white;">{{ member.role }}</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <!-- No Contract - Show Add Button -->
+            {% if user|can_edit_tenders %}
+            <div class="card mb-4 border-primary">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-earmark-plus" style="font-size: 3rem; color: var(--kengen-blue);"></i>
+                    <h5 class="mt-3">No Contract Added</h5>
+                    <p class="text-muted">This tender doesn't have a contract yet.</p>
+                    <a href="{% url 'tenders:contract_create' tender.pk %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Contract
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
         </div>
 
         <!-- Sidebar -->
         <div class="col-lg-4">
-            <!-- Status -->
+            <!-- Tender Status -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="bi bi-flag"></i> Status
+                    <i class="bi bi-flag"></i> Tender Status
                 </div>
                 <div class="card-body">
-                    {% if tender.loa_status %}
-                    <div class="mb-3">
-                        <small class="text-muted d-block">e-Contract Step</small>
-                        <h5><span class="badge" style="background-color: var(--kengen-red); color: white;">{{ tender.loa_status.name }}</span></h5>
-                    </div>
-                    {% endif %}
-                    {% if tender.contract_status %}
+                    {% if tender.tender_status %}
                     <div class="mb-0">
-                        <small class="text-muted d-block">e-Contract Status</small>
-                        <h5><span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">{{ tender.contract_status.name }}</span></h5>
+                        <small class="text-muted d-block">Status</small>
+                        <h5><span class="badge" style="background-color: var(--kengen-blue); color: white;">{{ tender.get_tender_status_display }}</span></h5>
                     </div>
                     {% endif %}
                 </div>
@@ -310,12 +424,12 @@
                         <small class="text-muted">{{ tender.tender_creator.email }}</small>
                     </div>
                     {% endif %}
-                    {% if tender.contract_creator %}
+                    {% if tender.contract.contract_creator %}
                     <div class="mb-3">
                         <small class="text-muted d-block">Contract Creator</small>
-                        <strong>{{ tender.contract_creator.full_name }}</strong>
+                        <strong>{{ tender.contract.contract_creator.full_name }}</strong>
                         <br>
-                        <small class="text-muted">{{ tender.contract_creator.email }}</small>
+                        <small class="text-muted">{{ tender.contract.contract_creator.email }}</small>
                     </div>
                     {% endif %}
                     {% if tender.user %}
