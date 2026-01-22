@@ -6,22 +6,82 @@ from django.contrib.auth.models import User
 from .models import (
     Tender, Contract, TenderOpeningCommittee, TenderEvaluationCommittee,
     ContractCITCommittee, Region, Department, Division, Section, ProcurementType,
-    LOAStatus, ContractStatus, Employee
+    LOAStatus, ContractStatus, Employee, Requisition
 )
+
+
+def get_employee_ordered_queryset():
+    return Employee.objects.order_by('last_name', 'first_name', 'employee_id')
+
+
+class DivisionSelect(forms.Select):
+    def __init__(self, *args, **kwargs):
+        self.department_by_division = kwargs.pop('department_by_division', {})
+        super().__init__(*args, **kwargs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        if value in self.department_by_division:
+            option.setdefault('attrs', {})['data-department-id'] = str(self.department_by_division[value])
+        return option
+
+
+class SectionSelect(forms.Select):
+    def __init__(self, *args, **kwargs):
+        self.division_by_section = kwargs.pop('division_by_section', {})
+        super().__init__(*args, **kwargs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        if value in self.division_by_section:
+            option.setdefault('attrs', {})['data-division-id'] = str(self.division_by_section[value])
+        return option
+
+
+class EmployeeSelect(forms.Select):
+    def __init__(self, *args, **kwargs):
+        self.employee_org_map = kwargs.pop('employee_org_map', {})
+        super().__init__(*args, **kwargs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        if value in self.employee_org_map:
+            department_id, division_id, section_id = self.employee_org_map[value]
+            option.setdefault('attrs', {})['data-department-id'] = str(department_id or '')
+            option.setdefault('attrs', {})['data-division-id'] = str(division_id or '')
+            option.setdefault('attrs', {})['data-section-id'] = str(section_id or '')
+        return option
 
 
 class TenderForm(forms.ModelForm):
     """Form for creating and editing tenders"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        employee_queryset = get_employee_ordered_queryset()
+        if 'tender_creator' in self.fields:
+            self.fields['tender_creator'].queryset = employee_queryset
+        if 'tender_creator' in self.fields:
+            self.fields['tender_creator'].queryset = employee_queryset.filter(
+                section__name__iexact='tenders',
+                section__division__name__iexact='procurement'
+            )
+        for field_name in ['requisition', 'tender_creator']:
+            if field_name in self.fields:
+                self.fields[field_name].required = True
+        if 'requisition' in self.fields:
+            self.fields['requisition'].queryset = Requisition.objects.order_by('-created_at')
     
     class Meta:
         model = Tender
         fields = [
             'tender_id', 'quarter', 'egp_tender_reference', 'kengen_tender_reference',
-            'requisition_number', 'shopping_cart', 'tender_description',
-            'procurement_type', 'reservation', 'tender_status', 'region', 'department', 'section', 'user',
+            'requisition', 'tender_description',
+            'procurement_type', 'reservation', 'tender_status',
             'tender_creator', 'tender_advert_date',
-            'tender_closing_date', 'tender_closing_time', 'tender_validity_expiry_date',
-            'tender_evaluation_duration', 'estimated_value'
+            'tender_closing_date', 'tender_closing_time', 'tender_opening_date', 'tender_opening_time',
+            'tender_validity_duration_days', 'tender_validity_expiry_date',
+            'tender_evaluation_duration_days', 'tender_evaluation_end_date', 'estimated_value'
         ]
         widgets = {
             'tender_id': forms.TextInput(attrs={
@@ -36,13 +96,8 @@ class TenderForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'e.g., KGN-SONDU-017-2025'
             }),
-            'requisition_number': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g., EPS/382/REQ/2025-26/1'
-            }),
-            'shopping_cart': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Shopping Cart Number'
+            'requisition': forms.Select(attrs={
+                'class': 'form-select'
             }),
             'tender_description': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -61,18 +116,6 @@ class TenderForm(forms.ModelForm):
             'tender_status': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'region': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'department': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'section': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'user': forms.Select(attrs={
-                'class': 'form-select'
-            }),
             'tender_creator': forms.Select(attrs={
                 'class': 'form-select'
             }),
@@ -88,13 +131,35 @@ class TenderForm(forms.ModelForm):
                 'class': 'form-control',
                 'type': 'time'
             }),
+            'tender_opening_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'readonly': True
+            }),
+            'tender_opening_time': forms.TimeInput(attrs={
+                'class': 'form-control',
+                'type': 'time',
+                'readonly': True
+            }),
             'tender_validity_expiry_date': forms.DateInput(attrs={
                 'class': 'form-control',
-                'type': 'date'
+                'type': 'date',
+                'readonly': True
             }),
-            'tender_evaluation_duration': forms.TextInput(attrs={
+            'tender_validity_duration_days': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g., 30 Days, 21 Days'
+                'placeholder': 'e.g., 30',
+                'min': 0
+            }),
+            'tender_evaluation_duration_days': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 14',
+                'min': 0
+            }),
+            'tender_evaluation_end_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'readonly': True
             }),
             'estimated_value': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -107,28 +172,33 @@ class TenderForm(forms.ModelForm):
             'quarter': 'Quarter',
             'egp_tender_reference': 'eGP Tender Reference',
             'kengen_tender_reference': 'KenGen Tender Reference',
-            'requisition_number': 'Requisition Number',
-            'shopping_cart': 'Shopping Cart',
+            'requisition': 'Requisition',
             'tender_description': 'Tender Description',
             'procurement_type': 'Procurement Type',
             'reservation': 'Reservation (AGPO)',
             'tender_status': 'Tender Status',
-            'region': 'Region',
-            'department': 'Department',
-            'section': 'Section',
-            'user': 'Assigned User',
             'tender_creator': 'Tender Creator',
             'tender_advert_date': 'Tender Advert Date',
             'tender_closing_date': 'Tender Closing Date',
             'tender_closing_time': 'Tender Closing Time',
+            'tender_opening_date': 'Tender Opening Date',
+            'tender_opening_time': 'Tender Opening Time',
+            'tender_validity_duration_days': 'Tender Validity Duration (Days)',
             'tender_validity_expiry_date': 'Tender Validity Expiry Date',
-            'tender_evaluation_duration': 'Tender Evaluation Duration',
+            'tender_evaluation_duration_days': 'Tender Evaluation Duration (Days)',
+            'tender_evaluation_end_date': 'Tender Evaluation End Date',
             'estimated_value': 'Estimated Value (KSh)',
         }
 
 
 class ContractForm(forms.ModelForm):
     """Form for creating and editing contracts"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        employee_queryset = get_employee_ordered_queryset()
+        if 'contract_creator' in self.fields:
+            self.fields['contract_creator'].queryset = employee_queryset
     
     class Meta:
         model = Contract
@@ -243,6 +313,11 @@ class ContractForm(forms.ModelForm):
 
 
 class TenderOpeningCommitteeForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'employee' in self.fields:
+            self.fields['employee'].queryset = get_employee_ordered_queryset()
     
     class Meta:
         model = TenderOpeningCommittee
@@ -260,6 +335,11 @@ class TenderOpeningCommitteeForm(forms.ModelForm):
 
 class TenderEvaluationCommitteeForm(forms.ModelForm):
     """Form for adding evaluation committee members"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'employee' in self.fields:
+            self.fields['employee'].queryset = get_employee_ordered_queryset()
     
     class Meta:
         model = TenderEvaluationCommittee
@@ -277,6 +357,11 @@ class TenderEvaluationCommitteeForm(forms.ModelForm):
 
 class ContractCITCommitteeForm(forms.ModelForm):
     """Form for adding CIT/Inspection & Acceptance committee members"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'employee' in self.fields:
+            self.fields['employee'].queryset = get_employee_ordered_queryset()
     
     class Meta:
         model = ContractCITCommittee
@@ -324,6 +409,95 @@ ContractCITCommitteeFormSet = inlineformset_factory(
     min_num=0,
     validate_min=False,
 )
+
+
+class RequisitionForm(forms.ModelForm):
+    """Form for creating and editing requisitions"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        employee_queryset = get_employee_ordered_queryset()
+        if 'assigned_user' in self.fields:
+            self.fields['assigned_user'].queryset = employee_queryset
+
+        department_id = self.data.get('department') if self.data else None
+        division_id = self.data.get('division') if self.data else None
+        section_id = self.data.get('section') if self.data else None
+
+        if not (department_id or division_id or section_id) and self.instance.pk:
+            department_id = getattr(self.instance, 'department_id', None)
+            division_id = getattr(self.instance, 'division_id', None)
+            section_id = getattr(self.instance, 'section_id', None)
+
+        if 'assigned_user' in self.fields:
+            if section_id:
+                self.fields['assigned_user'].queryset = employee_queryset.filter(section_id=section_id)
+            elif division_id:
+                self.fields['assigned_user'].queryset = employee_queryset.filter(division_id=division_id)
+            elif department_id:
+                self.fields['assigned_user'].queryset = employee_queryset.filter(department_id=department_id)
+
+        if 'division' in self.fields:
+            division_map = dict(Division.objects.values_list('id', 'department_id'))
+            if isinstance(self.fields['division'].widget, DivisionSelect):
+                self.fields['division'].widget.department_by_division = division_map
+        if 'section' in self.fields:
+            section_map = dict(Section.objects.values_list('id', 'division_id'))
+            if isinstance(self.fields['section'].widget, SectionSelect):
+                self.fields['section'].widget.division_by_section = section_map
+        if 'assigned_user' in self.fields and isinstance(self.fields['assigned_user'].widget, EmployeeSelect):
+            employee_map = {
+                emp_id: (dept_id, div_id, sec_id)
+                for emp_id, dept_id, div_id, sec_id in Employee.objects.values_list(
+                    'id', 'department_id', 'division_id', 'section_id'
+                )
+            }
+            self.fields['assigned_user'].widget.employee_org_map = employee_map
+
+        for field_name in ['region', 'department', 'division', 'section', 'assigned_user']:
+            if field_name in self.fields:
+                self.fields[field_name].required = True
+
+    class Meta:
+        model = Requisition
+        fields = [
+            'requisition_number', 'shopping_cart',
+            'region', 'department', 'division', 'section', 'assigned_user'
+        ]
+        widgets = {
+            'requisition_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., EPS/382/REQ/2025-26/1'
+            }),
+            'shopping_cart': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Shopping Cart Number'
+            }),
+            'region': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'department': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'division': DivisionSelect(attrs={
+                'class': 'form-select'
+            }),
+            'section': SectionSelect(attrs={
+                'class': 'form-select'
+            }),
+            'assigned_user': EmployeeSelect(attrs={
+                'class': 'form-select'
+            }),
+        }
+        labels = {
+            'requisition_number': 'Requisition Number',
+            'shopping_cart': 'Shopping Cart',
+            'region': 'Region',
+            'department': 'Department',
+            'division': 'Division',
+            'section': 'Section',
+            'assigned_user': 'Requisition Owner',
+        }
 
 
 class EmployeeForm(forms.ModelForm):

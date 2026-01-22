@@ -47,16 +47,16 @@
                                     <th>Description:</th>
                                     <td>{{ tender.tender_description|truncatewords:20 }}</td>
                                 </tr>
-                                {% if tender.region %}
+                                {% if tender.requisition and tender.requisition.region %}
                                 <tr>
                                     <th>Region:</th>
-                                    <td>{{ tender.region.name }}</td>
+                                    <td>{{ tender.requisition.region.name }}</td>
                                 </tr>
                                 {% endif %}
-                                {% if tender.department %}
+                                {% if tender.requisition and tender.requisition.department %}
                                 <tr>
                                     <th>Department:</th>
-                                    <td>{{ tender.department.name }}</td>
+                                    <td>{{ tender.requisition.department.name }}</td>
                                 </tr>
                                 {% endif %}
                                 {% if tender.tender_advert_date %}

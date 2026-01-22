@@ -165,12 +165,12 @@
                     {% endif %}
                 </div>
                 
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.shopping_cart.id_for_label }}" class="form-label">{{ form.shopping_cart.label }}</label>
-                    {{ form.shopping_cart }}
-                    {% if form.shopping_cart.errors %}
+                <div class="col-md-6 mb-3 required-field">
+                    <label for="{{ form.requisition.id_for_label }}" class="form-label">{{ form.requisition.label }}</label>
+                    {{ form.requisition }}
+                    {% if form.requisition.errors %}
                         <ul class="errorlist">
-                            {% for error in form.shopping_cart.errors %}
+                            {% for error in form.requisition.errors %}
                             <li>{{ error }}</li>
                             {% endfor %}
                         </ul>
@@ -185,11 +185,6 @@
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.kengen_tender_reference.id_for_label }}" class="form-label">{{ form.kengen_tender_reference.label }}</label>
                     {{ form.kengen_tender_reference }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.requisition_number.id_for_label }}" class="form-label">{{ form.requisition_number.label }}</label>
-                    {{ form.requisition_number }}
                 </div>
                 
                 <div class="col-md-6 mb-3">
@@ -219,40 +214,25 @@
             </div>
         </div>
 
-        <!-- Organization & Assignment -->
+        <!-- Requisition -->
         <div class="form-section">
             <div class="form-section-header">
-                <h3><i class="bi bi-building"></i> Organization & Assignment</h3>
-                <p>Select the organizational structure and assigned personnel</p>
+                <h3><i class="bi bi-clipboard-check"></i> Requisition</h3>
+                <p>Select the requisition for this tender</p>
             </div>
             
             <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="{{ form.region.id_for_label }}" class="form-label">{{ form.region.label }}</label>
-                    {{ form.region }}
+                <div class="col-md-6 mb-3 required-field">
+                    <label for="{{ form.requisition.id_for_label }}" class="form-label">{{ form.requisition.label }}</label>
+                    {{ form.requisition }}
                 </div>
-                
-                <div class="col-md-4 mb-3">
-                    <label for="{{ form.department.id_for_label }}" class="form-label">{{ form.department.label }}</label>
-                    {{ form.department }}
-                </div>
-                
-                <div class="col-md-4 mb-3">
-                    <label for="{{ form.section.id_for_label }}" class="form-label">{{ form.section.label }}</label>
-                    {{ form.section }}
-                </div>
-                
-                <div class="col-md-4 mb-3">
-                    <label for="{{ form.user.id_for_label }}" class="form-label">{{ form.user.label }}</label>
-                    {{ form.user }}
-                </div>
-                
-                <div class="col-md-4 mb-3">
+
+                <div class="col-md-6 mb-3 required-field">
                     <label for="{{ form.tender_creator.id_for_label }}" class="form-label">{{ form.tender_creator.label }}</label>
                     {{ form.tender_creator }}
                 </div>
                 
-                <div class="col-md-4 mb-3">
+                <div class="col-md-6 mb-3">
                     <label for="{{ form.contract_creator.id_for_label }}" class="form-label">{{ form.contract_creator.label }}</label>
                     {{ form.contract_creator }}
                 </div>
@@ -281,6 +261,16 @@
                     <label for="{{ form.tender_closing_time.id_for_label }}" class="form-label">{{ form.tender_closing_time.label }}</label>
                     {{ form.tender_closing_time }}
                 </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.tender_opening_date.id_for_label }}" class="form-label">{{ form.tender_opening_date.label }}</label>
+                    {{ form.tender_opening_date }}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.tender_opening_time.id_for_label }}" class="form-label">{{ form.tender_opening_time.label }}</label>
+                    {{ form.tender_opening_time }}
+                </div>
                 
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.tender_validity_expiry_date.id_for_label }}" class="form-label">{{ form.tender_validity_expiry_date.label }}</label>
@@ -288,8 +278,18 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.tender_evaluation_duration.id_for_label }}" class="form-label">{{ form.tender_evaluation_duration.label }}</label>
-                    {{ form.tender_evaluation_duration }}
+                    <label for="{{ form.tender_validity_duration_days.id_for_label }}" class="form-label">{{ form.tender_validity_duration_days.label }}</label>
+                    {{ form.tender_validity_duration_days }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.tender_evaluation_duration_days.id_for_label }}" class="form-label">{{ form.tender_evaluation_duration_days.label }}</label>
+                    {{ form.tender_evaluation_duration_days }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.tender_evaluation_end_date.id_for_label }}" class="form-label">{{ form.tender_evaluation_end_date.label }}</label>
+                    {{ form.tender_evaluation_end_date }}
                 </div>
             </div>
         </div>
@@ -494,5 +494,79 @@ document.getElementById('tender-form').addEventListener('submit', function(e) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 });
+
+const closingDateInput = document.getElementById('{{ form.tender_closing_date.id_for_label }}');
+const closingTimeInput = document.getElementById('{{ form.tender_closing_time.id_for_label }}');
+const openingDateInput = document.getElementById('{{ form.tender_opening_date.id_for_label }}');
+const openingTimeInput = document.getElementById('{{ form.tender_opening_time.id_for_label }}');
+const validityDaysInput = document.getElementById('{{ form.tender_validity_duration_days.id_for_label }}');
+const validityExpiryInput = document.getElementById('{{ form.tender_validity_expiry_date.id_for_label }}');
+const evaluationDaysInput = document.getElementById('{{ form.tender_evaluation_duration_days.id_for_label }}');
+const evaluationEndInput = document.getElementById('{{ form.tender_evaluation_end_date.id_for_label }}');
+
+function addDaysToDate(dateString, days) {
+    if (!dateString || days === '' || days === null) {
+        return '';
+    }
+    const date = new Date(`${dateString}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+    date.setDate(date.getDate() + Number(days));
+    return date.toISOString().split('T')[0];
+}
+
+function addMinutesToTime(timeString, minutes) {
+    if (!timeString) {
+        return '';
+    }
+    const [hours, mins] = timeString.split(':').map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(mins)) {
+        return '';
+    }
+    const total = hours * 60 + mins + minutes;
+    const newHours = Math.floor(total / 60) % 24;
+    const newMins = total % 60;
+    return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
+}
+
+function updateOpeningFields() {
+    if (closingDateInput && openingDateInput) {
+        openingDateInput.value = closingDateInput.value;
+    }
+    if (closingTimeInput && openingTimeInput) {
+        openingTimeInput.value = addMinutesToTime(closingTimeInput.value, 30);
+    }
+}
+
+function updateValidityExpiry() {
+    if (!validityExpiryInput || !validityDaysInput) {
+        return;
+    }
+    const baseDate = openingDateInput?.value || closingDateInput?.value;
+    validityExpiryInput.value = addDaysToDate(baseDate, validityDaysInput.value);
+}
+
+function updateEvaluationEndDate() {
+    if (!evaluationEndInput || !evaluationDaysInput) {
+        return;
+    }
+    const baseDate = openingDateInput?.value || closingDateInput?.value;
+    evaluationEndInput.value = addDaysToDate(baseDate, evaluationDaysInput.value);
+}
+
+function updateComputedTenderFields() {
+    updateOpeningFields();
+    updateValidityExpiry();
+    updateEvaluationEndDate();
+}
+
+if (closingDateInput || closingTimeInput || validityDaysInput || evaluationDaysInput) {
+    closingDateInput?.addEventListener('change', updateComputedTenderFields);
+    closingTimeInput?.addEventListener('change', updateComputedTenderFields);
+    validityDaysInput?.addEventListener('input', updateComputedTenderFields);
+    evaluationDaysInput?.addEventListener('input', updateComputedTenderFields);
+    updateComputedTenderFields();
+}
 </script>
 {% endblock %}

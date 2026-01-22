@@ -5,13 +5,13 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Count, Q, Sum
 from datetime import datetime, timedelta
 from .models import (
-    Tender, Contract, Employee, Department, Region, 
+    Tender, Contract, Employee, Department, Region, Requisition,
     ProcurementType, LOAStatus, ContractStatus
 )
 from .forms import (
     TenderForm, TenderOpeningCommitteeFormSet, 
     TenderEvaluationCommitteeFormSet, EmployeeForm,
-    ContractForm, ContractCITCommitteeFormSet
+    ContractForm, ContractCITCommitteeFormSet, RequisitionForm
 )
 from .auth_forms import SignUpForm
 
@@ -39,7 +39,7 @@ def landing_page(request):
     
     # Recent tenders
     recent_tenders = Tender.objects.select_related(
-        'procurement_type', 'region', 'department'
+        'procurement_type', 'requisition', 'requisition__region', 'requisition__department'
     ).prefetch_related('contract').order_by('-created_at')[:5]
     
     context = {
@@ -71,23 +71,23 @@ def dashboard(request):
     
     # Tenders by region
     tenders_by_region = Region.objects.annotate(
-        count=Count('tenders')
+        count=Count('requisitions__tenders')
     ).order_by('-count')
     
     # Tenders by department
     tenders_by_department = Department.objects.annotate(
-        count=Count('tenders')
+        count=Count('requisitions__tenders')
     ).order_by('-count')[:10]
     
     # Upcoming closing dates
     upcoming_tenders = Tender.objects.filter(
         tender_closing_date__gte=datetime.now().date(),
         tender_closing_date__lte=datetime.now().date() + timedelta(days=30)
-    ).select_related('department', 'region').order_by('tender_closing_date')[:10]
+    ).select_related('requisition__department', 'requisition__region').order_by('tender_closing_date')[:10]
     
     # Recent activity
     recent_tenders = Tender.objects.select_related(
-        'procurement_type', 'tender_creator', 'department'
+        'procurement_type', 'tender_creator', 'requisition__region', 'requisition__department'
     ).order_by('-created_at')[:10]
     
     context = {
@@ -106,8 +106,8 @@ def dashboard(request):
 def tender_list(request):
     """List all tenders with filters"""
     tenders = Tender.objects.select_related(
-        'procurement_type', 'region', 'department', 'section',
-        'tender_creator'
+        'procurement_type', 'requisition', 'requisition__region', 'requisition__department',
+        'requisition__division', 'requisition__section', 'tender_creator'
     ).prefetch_related('contract').all()
     
     # Filters
@@ -122,11 +122,11 @@ def tender_list(request):
     
     region_filter = request.GET.get('region', '')
     if region_filter:
-        tenders = tenders.filter(region_id=region_filter)
+        tenders = tenders.filter(requisition__region_id=region_filter)
     
     department_filter = request.GET.get('department', '')
     if department_filter:
-        tenders = tenders.filter(department_id=department_filter)
+        tenders = tenders.filter(requisition__department_id=department_filter)
     
     procurement_type_filter = request.GET.get('procurement_type', '')
     if procurement_type_filter:
@@ -171,8 +171,9 @@ def tender_detail(request, pk):
     """Detail view for a single tender"""
     tender = get_object_or_404(
         Tender.objects.select_related(
-            'procurement_type', 'region', 'department', 'section',
-            'tender_creator', 'user'
+            'procurement_type', 'requisition', 'requisition__region', 'requisition__department',
+            'requisition__division', 'requisition__section', 'requisition__assigned_user',
+            'tender_creator'
         ).prefetch_related(
             'opening_committee_members__employee',
             'evaluation_committee_members__employee',
@@ -281,6 +282,79 @@ def employee_delete(request, pk):
         'employee': employee,
     }
     return render(request, 'tenders/employee_confirm_delete.html', context)
+
+
+@login_required
+@user_passes_test(can_create_edit_tenders)
+def requisition_list(request):
+    """List all requisitions"""
+    requisitions = Requisition.objects.select_related(
+        'region', 'department', 'division', 'section', 'assigned_user'
+    ).all()
+
+    search_query = request.GET.get('search', '')
+    if search_query:
+        requisitions = requisitions.filter(
+            Q(requisition_number__icontains=search_query) |
+            Q(shopping_cart__icontains=search_query)
+        )
+
+    department_filter = request.GET.get('department', '')
+    if department_filter:
+        requisitions = requisitions.filter(department_id=department_filter)
+
+    departments = Department.objects.all()
+
+    context = {
+        'requisitions': requisitions.order_by('-created_at'),
+        'departments': departments,
+        'department_filter': department_filter,
+        'search_query': search_query,
+    }
+    return render(request, 'tenders/requisition_list.html', context)
+
+
+@login_required
+@user_passes_test(can_create_edit_tenders)
+def requisition_create(request):
+    """Create a requisition"""
+    if request.method == 'POST':
+        form = RequisitionForm(request.POST)
+        if form.is_valid():
+            requisition = form.save()
+            messages.success(request, f'Requisition {requisition.requisition_number} created successfully!')
+            return redirect('tenders:requisition_list')
+    else:
+        form = RequisitionForm()
+
+    context = {
+        'form': form,
+        'is_edit': False,
+    }
+    return render(request, 'tenders/requisition_form.html', context)
+
+
+@login_required
+@user_passes_test(can_create_edit_tenders)
+def requisition_edit(request, pk):
+    """Edit a requisition"""
+    requisition = get_object_or_404(Requisition, pk=pk)
+
+    if request.method == 'POST':
+        form = RequisitionForm(request.POST, instance=requisition)
+        if form.is_valid():
+            requisition = form.save()
+            messages.success(request, f'Requisition {requisition.requisition_number} updated successfully!')
+            return redirect('tenders:requisition_list')
+    else:
+        form = RequisitionForm(instance=requisition)
+
+    context = {
+        'form': form,
+        'is_edit': True,
+        'requisition': requisition,
+    }
+    return render(request, 'tenders/requisition_form.html', context)
 
 
 @login_required

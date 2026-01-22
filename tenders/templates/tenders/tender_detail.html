@@ -17,14 +17,14 @@
         <div>
             <h1 class="fw-bold mb-2">{{ tender.tender_id }}</h1>
             <div class="d-flex flex-wrap gap-2">
-                {% if tender.region %}
+                {% if tender.requisition and tender.requisition.region %}
                 <span class="badge" style="background-color: var(--kengen-blue); color: white;">
-                    <i class="bi bi-geo-alt"></i> {{ tender.region.name }}
+                    <i class="bi bi-geo-alt"></i> {{ tender.requisition.region.name }}
                 </span>
                 {% endif %}
-                {% if tender.department %}
+                {% if tender.requisition and tender.requisition.department %}
                 <span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">
-                    <i class="bi bi-building"></i> {{ tender.department.name }}
+                    <i class="bi bi-building"></i> {{ tender.requisition.department.name }}
                 </span>
                 {% endif %}
                 {% if tender.procurement_type %}
@@ -80,16 +80,16 @@
                             <strong>{{ tender.kengen_tender_reference }}</strong>
                         </div>
                         {% endif %}
-                        {% if tender.requisition_number %}
+                        {% if tender.requisition and tender.requisition.requisition_number %}
                         <div class="col-md-6 mb-3">
                             <small class="text-muted d-block">Requisition Number</small>
-                            <strong>{{ tender.requisition_number }}</strong>
+                            <strong>{{ tender.requisition.requisition_number }}</strong>
                         </div>
                         {% endif %}
-                        {% if tender.shopping_cart %}
+                        {% if tender.requisition and tender.requisition.shopping_cart %}
                         <div class="col-md-6 mb-3">
                             <small class="text-muted d-block">Shopping Cart</small>
-                            <strong>{{ tender.shopping_cart }}</strong>
+                            <strong>{{ tender.requisition.shopping_cart }}</strong>
                         </div>
                         {% endif %}
                     </div>
@@ -122,6 +122,25 @@
                             {% endif %}
                         </div>
                         {% endif %}
+                        {% if tender.tender_opening_date %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar-event"></i> Tender Opening Date
+                            </small>
+                            <strong>{{ tender.tender_opening_date|date:"l, F d, Y" }}</strong>
+                            {% if tender.tender_opening_time %}
+                            <br><small class="text-muted">Time: {{ tender.tender_opening_time|time:"g:i A" }}</small>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% if tender.tender_validity_duration_days %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-hourglass-split"></i> Validity Duration
+                            </small>
+                            <strong>{{ tender.tender_validity_duration_days }} day(s)</strong>
+                        </div>
+                        {% endif %}
                         {% if tender.tender_validity_expiry_date %}
                         <div class="col-md-6 mb-3">
                             <small class="text-muted d-block">
@@ -130,12 +149,20 @@
                             <strong>{{ tender.tender_validity_expiry_date|date:"l, F d, Y" }}</strong>
                         </div>
                         {% endif %}
-                        {% if tender.tender_evaluation_duration %}
+                        {% if tender.tender_evaluation_duration_days %}
                         <div class="col-md-6 mb-3">
                             <small class="text-muted d-block">
                                 <i class="bi bi-clock"></i> Evaluation Duration
                             </small>
-                            <strong>{{ tender.tender_evaluation_duration }}</strong>
+                            <strong>{{ tender.tender_evaluation_duration_days }} day(s)</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.tender_evaluation_end_date %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar-check"></i> Evaluation End Date
+                            </small>
+                            <strong>{{ tender.tender_evaluation_end_date|date:"l, F d, Y" }}</strong>
                         </div>
                         {% endif %}
                     </div>
@@ -389,22 +416,28 @@
                     <i class="bi bi-diagram-3"></i> Organization
                 </div>
                 <div class="card-body">
-                    {% if tender.region %}
+                    {% if tender.requisition and tender.requisition.region %}
                     <div class="mb-3">
                         <small class="text-muted d-block">Region</small>
-                        <strong>{{ tender.region.name }}</strong>
+                        <strong>{{ tender.requisition.region.name }}</strong>
                     </div>
                     {% endif %}
-                    {% if tender.department %}
+                    {% if tender.requisition and tender.requisition.department %}
                     <div class="mb-3">
                         <small class="text-muted d-block">Department</small>
-                        <strong>{{ tender.department.name }}</strong>
+                        <strong>{{ tender.requisition.department.name }}</strong>
                     </div>
                     {% endif %}
-                    {% if tender.section %}
+                    {% if tender.requisition and tender.requisition.division %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Division</small>
+                        <strong>{{ tender.requisition.division.name }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if tender.requisition and tender.requisition.section %}
                     <div class="mb-0">
                         <small class="text-muted d-block">Section</small>
-                        <strong>{{ tender.section.name }}</strong>
+                        <strong>{{ tender.requisition.section.name }}</strong>
                     </div>
                     {% endif %}
                 </div>
@@ -432,12 +465,12 @@
                         <small class="text-muted">{{ tender.contract.contract_creator.email }}</small>
                     </div>
                     {% endif %}
-                    {% if tender.user %}
+                    {% if tender.requisition and tender.requisition.assigned_user %}
                     <div class="mb-0">
-                        <small class="text-muted d-block">Assigned User</small>
-                        <strong>{{ tender.user.full_name }}</strong>
+                        <small class="text-muted d-block">Requisition Owner</small>
+                        <strong>{{ tender.requisition.assigned_user.full_name }}</strong>
                         <br>
-                        <small class="text-muted">{{ tender.user.email }}</small>
+                        <small class="text-muted">{{ tender.requisition.assigned_user.email }}</small>
                     </div>
                     {% endif %}
                 </div>

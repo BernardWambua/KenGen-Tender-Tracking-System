@@ -105,19 +105,19 @@
                         
                         <!-- Badges -->
                         <div class="d-flex flex-wrap gap-2 mb-2">
-                            {% if tender.region %}
+                            {% if tender.requisition and tender.requisition.region %}
                             <span class="badge" style="background-color: var(--kengen-blue); color: white;">
-                                <i class="bi bi-geo-alt"></i> {{ tender.region.name }}
+                                <i class="bi bi-geo-alt"></i> {{ tender.requisition.region.name }}
                             </span>
                             {% endif %}
-                            {% if tender.department %}
+                            {% if tender.requisition and tender.requisition.department %}
                             <span class="badge" style="background-color: var(--kengen-dark-blue); color: white;">
-                                <i class="bi bi-building"></i> {{ tender.department.name }}
+                                <i class="bi bi-building"></i> {{ tender.requisition.department.name }}
                             </span>
                             {% endif %}
-                            {% if tender.section %}
+                            {% if tender.requisition and tender.requisition.section %}
                             <span class="badge" style="background-color: var(--kengen-red); color: white;">
-                                <i class="bi bi-diagram-3"></i> {{ tender.section.name }}
+                                <i class="bi bi-diagram-3"></i> {{ tender.requisition.section.name }}
                             </span>
                             {% endif %}
                             {% if tender.procurement_type %}

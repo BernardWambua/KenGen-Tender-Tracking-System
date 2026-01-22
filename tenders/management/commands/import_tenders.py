@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from tenders.models import (
     Region, Department, Division, Section, ProcurementType,
-    LOAStatus, ContractStatus, Employee, Tender
+    LOAStatus, ContractStatus, Employee, Tender, Requisition
 )
 
 
@@ -30,6 +30,7 @@ class Command(BaseCommand):
                 region = self.get_or_create_region(row.get('Region'))
                 department = self.get_or_create_department(row.get('Department '))  # Note the space in CSV
                 section = self.get_or_create_section(row.get('Section'), department)
+                division = section.division if section else None
                 procurement_type = self.get_or_create_procurement_type(row.get('Procurement Type'))
                 loa_status = self.get_or_create_loa_status(row.get('LOA (Letter of Award status)'))
                 contract_status = self.get_or_create_contract_status(row.get('e-Contract Status'))
@@ -54,31 +55,37 @@ class Command(BaseCommand):
                 tender_id_raw = row.get('Tender ID', '')
                 tender_id = tender_id_raw.split(':')[-1].strip() if ':' in tender_id_raw else tender_id_raw
                 
+                requisition_number = row.get('Requisition Number') or None
+                if not requisition_number:
+                    requisition_number = f"REQ-{tender_id}"
+
+                requisition, _ = Requisition.objects.update_or_create(
+                    requisition_number=requisition_number,
+                    defaults={
+                        'shopping_cart': row.get('Shopping Cart') or None,
+                        'region': region,
+                        'department': department,
+                        'division': division,
+                        'section': section,
+                        'assigned_user': user,
+                    }
+                )
+
                 # Create or update tender
                 tender, created = Tender.objects.update_or_create(
                     tender_id=tender_id,
                     defaults={
-                        'shopping_cart': row.get('Shopping Cart') or None,
-                        'requisition_number': row.get('Requisition Number') or None,
+                        'requisition': requisition,
                         'egp_tender_reference': row.get('eGP Tender Reference') or None,
                         'kengen_tender_reference': row.get('KenGen Tender Reference') or None,
                         'tender_description': row.get('Tender Description') or '',
                         'procurement_type': procurement_type,
-                        'region': region,
-                        'department': department,
-                        'section': section,
-                        'user': user,
                         'tender_creator': tender_creator,
-                        'contract_creator': contract_creator,
                         'tender_advert_date': tender_advert_date,
                         'tender_closing_date': tender_closing_date,
                         'tender_closing_time': tender_closing_time,
                         'tender_validity_expiry_date': tender_validity_expiry_date,
                         'tender_evaluation_duration': row.get('Tender Evaluation Duration(30/21 Days)') or None,
-                        'loa_status': loa_status,
-                        'contract_status': contract_status,
-                        'e_purchase_order_no': row.get('e-Purchase order No') or None,
-                        'sap_purchase_order_no': row.get('SAP purchase order No') or None,
                         'estimated_value': estimated_value,
                     }
                 )

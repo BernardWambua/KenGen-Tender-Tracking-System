@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Region, Department, Division, Section, ProcurementType,
-    LOAStatus, ContractStatus, Employee, Tender, Contract,
+    LOAStatus, ContractStatus, Employee, Tender, Contract, Requisition,
     TenderOpeningCommittee, TenderEvaluationCommittee, ContractCITCommittee, UserProfile
 )
 
@@ -86,6 +86,15 @@ class EmployeeAdmin(admin.ModelAdmin):
     )
 
 
+# Requisition Admin
+@admin.register(Requisition)
+class RequisitionAdmin(admin.ModelAdmin):
+    list_display = ['requisition_number', 'shopping_cart', 'region', 'department', 'division', 'section', 'assigned_user', 'created_at']
+    list_filter = ['region', 'department', 'division', 'section']
+    search_fields = ['requisition_number', 'shopping_cart', 'assigned_user__first_name', 'assigned_user__last_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
 # Inline admins for committees
 class TenderOpeningCommitteeInline(admin.TabularInline):
     model = TenderOpeningCommittee
@@ -141,38 +150,40 @@ class ContractInline(admin.StackedInline):
 class TenderAdmin(admin.ModelAdmin):
     list_display = [
         'tender_id', 'tender_description_short', 'quarter', 'procurement_type', 
-        'region', 'department', 'tender_status', 'tender_advert_date', 'tender_closing_date',
+        'requisition', 'tender_status', 'tender_advert_date', 'tender_closing_date',
         'estimated_value'
     ]
     list_filter = [
         'quarter', 'tender_status', 'reservation', 'procurement_type', 
-        'region', 'department', 'tender_advert_date'
+        'requisition__region', 'requisition__department', 'requisition__division', 'requisition__section', 'tender_advert_date'
     ]
     search_fields = [
         'tender_id', 'tender_description', 'egp_tender_reference', 
-        'kengen_tender_reference', 'requisition_number'
+        'kengen_tender_reference', 'requisition__requisition_number'
     ]
-    autocomplete_fields = ['tender_creator', 'user']
+    autocomplete_fields = ['tender_creator', 'requisition']
     readonly_fields = ['created_at', 'updated_at']
     date_hierarchy = 'tender_advert_date'
     
     fieldsets = (
         ('Identification', {
-            'fields': ('tender_id', 'quarter', 'egp_tender_reference', 'kengen_tender_reference', 
-                      'requisition_number', 'shopping_cart')
+            'fields': ('tender_id', 'quarter', 'egp_tender_reference', 'kengen_tender_reference',
+                      'requisition')
         }),
         ('Description & Classification', {
             'fields': ('tender_description', 'procurement_type', 'reservation', 'tender_status')
         }),
-        ('Location & Assignment', {
-            'fields': ('region', 'department', 'section', 'user')
+        ('Location', {
+            'fields': ('region',)
         }),
         ('Creator', {
             'fields': ('tender_creator',)
         }),
         ('Important Dates', {
             'fields': ('tender_advert_date', 'tender_closing_date', 'tender_closing_time',
-                      'tender_validity_expiry_date', 'tender_evaluation_duration')
+                      'tender_opening_date', 'tender_opening_time', 'tender_validity_duration_days',
+                      'tender_validity_expiry_date', 'tender_evaluation_duration_days',
+                      'tender_evaluation_end_date')
         }),
         ('Financial', {
             'fields': ('estimated_value',)

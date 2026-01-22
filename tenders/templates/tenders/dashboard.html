@@ -186,8 +186,8 @@
                                         {% if tender.tender_creator %}
                                         <i class="bi bi-person"></i> {{ tender.tender_creator.full_name }}
                                         {% endif %}
-                                        {% if tender.department %}
-                                        | <i class="bi bi-building"></i> {{ tender.department.name }}
+                                        {% if tender.requisition and tender.requisition.department %}
+                                        | <i class="bi bi-building"></i> {{ tender.requisition.department.name }}
                                         {% endif %}
                                     </small>
                                 </div>
@@ -285,10 +285,10 @@
                             <small class="text-muted">
                                 <i class="bi bi-calendar"></i> {{ tender.tender_closing_date|date:"d M Y" }}
                             </small>
-                            {% if tender.region %}
+                            {% if tender.requisition and tender.requisition.region %}
                             <br>
                             <small class="text-muted">
-                                <i class="bi bi-geo-alt"></i> {{ tender.region.name }}
+                                <i class="bi bi-geo-alt"></i> {{ tender.requisition.region.name }}
                             </small>
                             {% endif %}
                         </li>

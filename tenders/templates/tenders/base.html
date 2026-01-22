@@ -47,6 +47,11 @@
                             <i class="bi bi-file-earmark-text"></i> Tenders
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'requisition_list' %}active{% endif %}" href="{% url 'tenders:requisition_list' %}">
+                            <i class="bi bi-clipboard-check"></i> Requisitions
+                        </a>
+                    </li>
                     {% if user|has_group:"Admin" %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}" href="{% url 'tenders:employee_list' %}">
@@ -113,6 +118,7 @@
                     <ul class="list-unstyled">
                         <li><a href="{% url 'tenders:dashboard' %}">Dashboard</a></li>
                         <li><a href="{% url 'tenders:tender_list' %}">All Tenders</a></li>
+                        <li><a href="{% url 'tenders:requisition_list' %}">Requisitions</a></li>
                         {% if user|has_group:"Admin" %}
                         <li><a href="{% url 'tenders:employee_list' %}">Employees</a></li>
                         <li><a href="{% url 'tenders:custom_admin_dashboard' %}">Admin</a></li>

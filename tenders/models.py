@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
@@ -83,7 +85,7 @@ class Division(models.Model):
         unique_together = ['department', 'name']
 
     def __str__(self):
-        return f"{self.department.name} - {self.name}"
+        return self.name
 
 
 class Section(models.Model):
@@ -98,7 +100,7 @@ class Section(models.Model):
         unique_together = ['division', 'name']
 
     def __str__(self):
-        return f"{self.division.name} - {self.name}"
+        return self.name
 
 
 class ProcurementType(models.Model):
@@ -178,11 +180,46 @@ class Employee(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
+class Requisition(models.Model):
+    """Requisition details created before a tender"""
+    requisition_number = models.CharField(max_length=100, unique=True)
+    shopping_cart = models.CharField(max_length=100, blank=True, null=True)
+
+    # Organizational structure (captured at requisition stage)
+    region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, related_name='requisitions')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='requisitions')
+    division = models.ForeignKey(Division, on_delete=models.SET_NULL, null=True, blank=True, related_name='requisitions')
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='requisitions')
+
+    assigned_user = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_requisitions',
+        verbose_name="Requisition Owner"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.requisition_number}"
+
+
 class Tender(models.Model):
     """Main tender tracking model"""
     # Requisition and identification
-    shopping_cart = models.CharField(max_length=100, blank=True, null=True)
-    requisition_number = models.CharField(max_length=100, blank=True, null=True)
+    requisition = models.ForeignKey(
+        Requisition,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tenders'
+    )
     tender_id = models.CharField(max_length=100, unique=True)
     egp_tender_reference = models.CharField(max_length=100, blank=True, null=True, verbose_name="eGP Tender Reference")
     kengen_tender_reference = models.CharField(max_length=100, blank=True, null=True, verbose_name="KenGen Tender Reference")
@@ -222,11 +259,7 @@ class Tender(models.Model):
     ]
     tender_status = models.CharField(max_length=20, choices=TENDER_STATUS_CHOICES, blank=True, null=True, verbose_name="Tender Status")
     
-    # Location and assignment
-    region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, related_name='tenders')
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='tenders')
-    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='tenders')
-    user = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tenders', verbose_name="Assigned User")
+    # Location
     
     # Creators
     tender_creator = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, related_name='created_tenders')
@@ -235,10 +268,15 @@ class Tender(models.Model):
     tender_advert_date = models.DateField(blank=True, null=True)
     tender_closing_date = models.DateField(blank=True, null=True)
     tender_closing_time = models.TimeField(blank=True, null=True)
+    tender_opening_date = models.DateField(blank=True, null=True)
+    tender_opening_time = models.TimeField(blank=True, null=True)
     tender_validity_expiry_date = models.DateField(blank=True, null=True)
+    tender_validity_duration_days = models.PositiveIntegerField(blank=True, null=True, help_text="Validity period in days")
     
     # Evaluation details
     tender_evaluation_duration = models.CharField(max_length=50, blank=True, null=True, help_text="e.g., 30 Days, 21 Days")
+    tender_evaluation_duration_days = models.PositiveIntegerField(blank=True, null=True, help_text="Evaluation duration in days")
+    tender_evaluation_end_date = models.DateField(blank=True, null=True)
     
     # Financial
     estimated_value = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
@@ -252,6 +290,23 @@ class Tender(models.Model):
 
     def __str__(self):
         return f"{self.tender_id} - {self.tender_description[:50]}"
+
+    def save(self, *args, **kwargs):
+        if self.tender_closing_date:
+            self.tender_opening_date = self.tender_closing_date
+
+        if self.tender_closing_date and self.tender_closing_time:
+            opening_datetime = datetime.combine(self.tender_closing_date, self.tender_closing_time) + timedelta(minutes=30)
+            self.tender_opening_time = opening_datetime.time()
+
+        base_validity_date = self.tender_opening_date or self.tender_closing_date
+        if base_validity_date and self.tender_validity_duration_days is not None:
+            self.tender_validity_expiry_date = base_validity_date + timedelta(days=self.tender_validity_duration_days)
+
+        if self.tender_opening_date and self.tender_evaluation_duration_days is not None:
+            self.tender_evaluation_end_date = self.tender_opening_date + timedelta(days=self.tender_evaluation_duration_days)
+
+        super().save(*args, **kwargs)
 
 
 class Contract(models.Model):

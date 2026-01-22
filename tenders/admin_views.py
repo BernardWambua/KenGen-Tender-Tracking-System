@@ -539,7 +539,9 @@ def manage_user_employee_links(request):
     users = User.objects.select_related('profile', 'profile__employee').prefetch_related('groups').all()
     
     # Get unlinked employees (no user_account)
-    unlinked_employees = Employee.objects.filter(user_account__isnull=True, is_active=True)
+    unlinked_employees = Employee.objects.filter(user_account__isnull=True, is_active=True).order_by(
+        'last_name', 'first_name', 'employee_id'
+    )
     
     # Get users without employee links
     unlinked_users = [u for u in users if not u.profile.employee]

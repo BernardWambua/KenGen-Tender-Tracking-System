@@ -1,0 +1,236 @@
+{% extends "tenders/base.html" %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Add{% endif %} Requisition - KenGen Tender Tracking{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tenders:landing' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tenders:requisition_list' %}">Requisitions</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}Add{% endif %} Requisition</li>
+        </ol>
+    </nav>
+
+    <div class="mb-4">
+        <h1 class="fw-bold mb-2">
+            <i class="bi bi-clipboard-{% if is_edit %}check{% else %}plus{% endif %}"></i>
+            {% if is_edit %}Edit Requisition{% else %}Add New Requisition{% endif %}
+        </h1>
+        <p class="text-muted mb-0">
+            {% if is_edit %}Update requisition details{% else %}Fill in the form below to create a requisition{% endif %}
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-4">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3 required-field">
+                        <label for="{{ form.requisition_number.id_for_label }}" class="form-label">{{ form.requisition_number.label }}</label>
+                        {{ form.requisition_number }}
+                        {% if form.requisition_number.errors %}
+                        <div class="text-danger small mt-1">{{ form.requisition_number.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.shopping_cart.id_for_label }}" class="form-label">{{ form.shopping_cart.label }}</label>
+                        {{ form.shopping_cart }}
+                        {% if form.shopping_cart.errors %}
+                        <div class="text-danger small mt-1">{{ form.shopping_cart.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3 required-field">
+                        <label for="{{ form.region.id_for_label }}" class="form-label">{{ form.region.label }}</label>
+                        {{ form.region }}
+                    </div>
+                    <div class="col-md-4 mb-3 required-field">
+                        <label for="{{ form.department.id_for_label }}" class="form-label">{{ form.department.label }}</label>
+                        {{ form.department }}
+                    </div>
+                    <div class="col-md-4 mb-3 required-field">
+                        <label for="{{ form.division.id_for_label }}" class="form-label">{{ form.division.label }}</label>
+                        {{ form.division }}
+                    </div>
+                    <div class="col-md-4 mb-3 required-field">
+                        <label for="{{ form.section.id_for_label }}" class="form-label">{{ form.section.label }}</label>
+                        {{ form.section }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3 required-field">
+                        <label for="{{ form.assigned_user.id_for_label }}" class="form-label">{{ form.assigned_user.label }}</label>
+                        <input
+                            type="text"
+                            class="form-control form-control-sm mb-2"
+                            id="assigned-user-search"
+                            placeholder="Search requisition owner by name or staff number..."
+                            autocomplete="off"
+                        />
+                        {{ form.assigned_user }}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'tenders:requisition_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> {% if is_edit %}Update{% else %}Create{% endif %} Requisition
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const assignedUserSearch = document.getElementById('assigned-user-search');
+const assignedUserSelect = document.getElementById('{{ form.assigned_user.id_for_label }}');
+
+if (assignedUserSearch && assignedUserSelect) {
+    const options = Array.from(assignedUserSelect.options);
+    options.forEach(option => {
+        option.dataset.searchText = option.textContent.toLowerCase();
+    });
+
+    assignedUserSearch.addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+        options.forEach(option => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+            const matchesSearch = option.dataset.searchText.includes(query);
+            const matchesOrg = option.dataset.orgMatch !== 'false';
+            option.hidden = query ? !(matchesSearch && matchesOrg) : !matchesOrg;
+        });
+
+        if (assignedUserSelect.selectedOptions.length) {
+            const selected = assignedUserSelect.selectedOptions[0];
+            if (selected.hidden) {
+                assignedUserSelect.selectedIndex = 0;
+            }
+        }
+    });
+}
+
+const departmentSelect = document.getElementById('{{ form.department.id_for_label }}');
+const divisionSelect = document.getElementById('{{ form.division.id_for_label }}');
+const sectionSelect = document.getElementById('{{ form.section.id_for_label }}');
+
+function filterSelectOptions(selectElement, dataAttr, parentValue) {
+    if (!selectElement) {
+        return;
+    }
+    const options = Array.from(selectElement.options);
+    options.forEach(option => {
+        if (!option.value) {
+            option.hidden = false;
+            return;
+        }
+        const optionParent = option.getAttribute(dataAttr);
+        option.hidden = parentValue ? optionParent !== parentValue : true;
+    });
+}
+
+function ensureValidSelection(selectElement) {
+    if (!selectElement) {
+        return;
+    }
+    const selected = selectElement.selectedOptions[0];
+    if (selected && selected.hidden) {
+        selectElement.selectedIndex = 0;
+    }
+}
+
+function handleDepartmentChange() {
+    if (!departmentSelect || !divisionSelect) {
+        return;
+    }
+    const departmentValue = departmentSelect.value;
+    filterSelectOptions(divisionSelect, 'data-department-id', departmentValue);
+    ensureValidSelection(divisionSelect);
+    handleDivisionChange();
+    updateAssignedUserOptions();
+}
+
+function handleDivisionChange() {
+    if (!divisionSelect || !sectionSelect) {
+        return;
+    }
+    const divisionValue = divisionSelect.value;
+    filterSelectOptions(sectionSelect, 'data-division-id', divisionValue);
+    ensureValidSelection(sectionSelect);
+    updateAssignedUserOptions();
+}
+
+function updateAssignedUserOptions() {
+    if (!assignedUserSelect) {
+        return;
+    }
+
+    const departmentValue = departmentSelect?.value || '';
+    const divisionValue = divisionSelect?.value || '';
+    const sectionValue = sectionSelect?.value || '';
+
+    Array.from(assignedUserSelect.options).forEach(option => {
+        if (!option.value) {
+            option.hidden = false;
+            return;
+        }
+
+        const optionDepartment = option.getAttribute('data-department-id');
+        const optionDivision = option.getAttribute('data-division-id');
+        const optionSection = option.getAttribute('data-section-id');
+
+        if (!departmentValue) {
+            option.hidden = true;
+            option.dataset.orgMatch = 'false';
+            return;
+        }
+
+        let matches = optionDepartment === departmentValue;
+        if (divisionValue) {
+            matches = matches && optionDivision === divisionValue;
+        }
+        if (sectionValue) {
+            matches = matches && optionSection === sectionValue;
+        }
+
+        option.dataset.orgMatch = matches ? 'true' : 'false';
+        option.hidden = !matches;
+    });
+
+    ensureValidSelection(assignedUserSelect);
+
+    if (assignedUserSearch && assignedUserSearch.value) {
+        assignedUserSearch.dispatchEvent(new Event('input'));
+    }
+}
+
+if (departmentSelect && divisionSelect && sectionSelect) {
+    departmentSelect.addEventListener('change', handleDepartmentChange);
+    divisionSelect.addEventListener('change', handleDivisionChange);
+    handleDepartmentChange();
+}
+
+if (assignedUserSelect) {
+    updateAssignedUserOptions();
+}
+</script>
+{% endblock %}
