@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -6,7 +7,7 @@ from django.db.models import Count, Q, Sum
 from datetime import datetime, timedelta
 from .models import (
     Tender, Contract, Employee, Department, Region, Requisition,
-    ProcurementType, LOAStatus, ContractStatus
+    LOAStatus, ContractStatus
 )
 from .forms import (
     TenderForm, TenderOpeningCommitteeFormSet, 
@@ -29,6 +30,8 @@ def can_create_edit_tenders(user):
 def landing_page(request):
     """Landing page with overview and statistics"""
     total_tenders = Tender.objects.count()
+    total_requisitions = Requisition.objects.count()
+    total_contracts = Contract.objects.count()
     active_tenders = Tender.objects.filter(
         tender_closing_date__gte=datetime.now().date()
     ).count()
@@ -39,15 +42,27 @@ def landing_page(request):
     
     # Recent tenders
     recent_tenders = Tender.objects.select_related(
-        'procurement_type', 'requisition', 'requisition__region', 'requisition__department'
+        'requisition', 'requisition__region', 'requisition__department'
     ).prefetch_related('contract').order_by('-created_at')[:5]
+
+    recent_requisitions = Requisition.objects.select_related(
+        'region', 'department', 'division', 'section', 'assigned_user'
+    ).order_by('-created_at')[:5]
+
+    recent_contracts = Contract.objects.select_related(
+        'tender', 'tender__requisition', 'tender__requisition__region', 'tender__requisition__department'
+    ).order_by('-created_at')[:5]
     
     context = {
         'total_tenders': total_tenders,
+        'total_requisitions': total_requisitions,
+        'total_contracts': total_contracts,
         'active_tenders': active_tenders,
         'total_employees': total_employees,
         'total_value': total_value,
         'recent_tenders': recent_tenders,
+        'recent_requisitions': recent_requisitions,
+        'recent_contracts': recent_contracts,
     }
     return render(request, 'tenders/landing.html', context)
 
@@ -55,28 +70,46 @@ def landing_page(request):
 @login_required
 def dashboard(request):
     """Dashboard with analytics and charts"""
-    # Contracts by status
-    tenders_by_loa_status = LOAStatus.objects.annotate(
-        count=Count('contracts')
+    total_requisitions = Requisition.objects.count()
+    total_contracts = Contract.objects.count()
+    # Contracts by step
+    contract_step_counts = Contract.objects.values('contract_step').annotate(
+        count=Count('id')
     ).order_by('-count')
+    contract_step_labels = dict(Contract.CONTRACT_STEP_CHOICES)
+    tenders_by_loa_status = [
+        {
+            'name': contract_step_labels.get(item['contract_step'], 'Unspecified'),
+            'count': item['count'],
+        }
+        for item in contract_step_counts
+    ]
     
     tenders_by_contract_status = ContractStatus.objects.annotate(
         count=Count('contracts')
     ).order_by('-count')
     
-    # Tenders by procurement type
-    tenders_by_type = ProcurementType.objects.annotate(
-        count=Count('tenders')
+    # Tenders by procurement method
+    tender_method_counts = Tender.objects.values('procurement_method').annotate(
+        count=Count('id')
     ).order_by('-count')
+    procurement_method_labels = dict(Tender.PROCUREMENT_METHOD_CHOICES)
+    tenders_by_type = [
+        {
+            'name': procurement_method_labels.get(item['procurement_method'], 'Unspecified'),
+            'count': item['count'],
+        }
+        for item in tender_method_counts
+    ]
     
-    # Tenders by region
+    # Requisitions by region
     tenders_by_region = Region.objects.annotate(
-        count=Count('requisitions__tenders')
+        count=Count('requisitions', distinct=True)
     ).order_by('-count')
     
-    # Tenders by department
+    # Requisitions by department
     tenders_by_department = Department.objects.annotate(
-        count=Count('requisitions__tenders')
+        count=Count('requisitions', distinct=True)
     ).order_by('-count')[:10]
     
     # Upcoming closing dates
@@ -87,10 +120,20 @@ def dashboard(request):
     
     # Recent activity
     recent_tenders = Tender.objects.select_related(
-        'procurement_type', 'tender_creator', 'requisition__region', 'requisition__department'
+        'tender_creator', 'requisition__region', 'requisition__department'
+    ).order_by('-created_at')[:10]
+
+    recent_requisitions = Requisition.objects.select_related(
+        'region', 'department', 'division', 'section', 'assigned_user'
+    ).order_by('-created_at')[:10]
+
+    recent_contracts = Contract.objects.select_related(
+        'tender', 'tender__requisition', 'tender__requisition__region', 'tender__requisition__department'
     ).order_by('-created_at')[:10]
     
     context = {
+        'total_requisitions': total_requisitions,
+        'total_contracts': total_contracts,
         'tenders_by_loa_status': tenders_by_loa_status,
         'tenders_by_contract_status': tenders_by_contract_status,
         'tenders_by_type': tenders_by_type,
@@ -98,6 +141,8 @@ def dashboard(request):
         'tenders_by_department': tenders_by_department,
         'upcoming_tenders': upcoming_tenders,
         'recent_tenders': recent_tenders,
+        'recent_requisitions': recent_requisitions,
+        'recent_contracts': recent_contracts,
     }
     return render(request, 'tenders/dashboard.html', context)
 
@@ -106,19 +151,20 @@ def dashboard(request):
 def tender_list(request):
     """List all tenders with filters"""
     tenders = Tender.objects.select_related(
-        'procurement_type', 'requisition', 'requisition__region', 'requisition__department',
+        'requisition', 'requisition__region', 'requisition__department',
         'requisition__division', 'requisition__section', 'tender_creator'
     ).prefetch_related('contract').all()
     
     # Filters
     search_query = request.GET.get('search', '')
     if search_query:
-        tenders = tenders.filter(
-            Q(tender_id__icontains=search_query) |
+        tender_filters = (
             Q(tender_description__icontains=search_query) |
-            Q(egp_tender_reference__icontains=search_query) |
-            Q(kengen_tender_reference__icontains=search_query)
+            Q(tender_reference_number__icontains=search_query)
         )
+        if search_query.isdigit():
+            tender_filters |= Q(tender_id=int(search_query))
+        tenders = tenders.filter(tender_filters)
     
     region_filter = request.GET.get('region', '')
     if region_filter:
@@ -128,9 +174,9 @@ def tender_list(request):
     if department_filter:
         tenders = tenders.filter(requisition__department_id=department_filter)
     
-    procurement_type_filter = request.GET.get('procurement_type', '')
-    if procurement_type_filter:
-        tenders = tenders.filter(procurement_type_id=procurement_type_filter)
+    procurement_method_filter = request.GET.get('procurement_method', '')
+    if procurement_method_filter:
+        tenders = tenders.filter(procurement_method=procurement_method_filter)
     
     loa_status_filter = request.GET.get('loa_status', '')
     if loa_status_filter:
@@ -143,7 +189,7 @@ def tender_list(request):
     # For filter dropdowns
     regions = Region.objects.all()
     departments = Department.objects.all()
-    procurement_types = ProcurementType.objects.all()
+    procurement_methods = Tender.PROCUREMENT_METHOD_CHOICES
     loa_statuses = LOAStatus.objects.all()
     contract_statuses = ContractStatus.objects.all()
     
@@ -153,13 +199,13 @@ def tender_list(request):
         'tenders': tenders,
         'regions': regions,
         'departments': departments,
-        'procurement_types': procurement_types,
+        'procurement_methods': procurement_methods,
         'loa_statuses': loa_statuses,
         'contract_statuses': contract_statuses,
         'search_query': search_query,
         'region_filter': region_filter,
         'department_filter': department_filter,
-        'procurement_type_filter': procurement_type_filter,
+        'procurement_method_filter': procurement_method_filter,
         'loa_status_filter': loa_status_filter,
         'contract_status_filter': contract_status_filter,
     }
@@ -171,7 +217,7 @@ def tender_detail(request, pk):
     """Detail view for a single tender"""
     tender = get_object_or_404(
         Tender.objects.select_related(
-            'procurement_type', 'requisition', 'requisition__region', 'requisition__department',
+            'requisition', 'requisition__region', 'requisition__department',
             'requisition__division', 'requisition__section', 'requisition__assigned_user',
             'tender_creator'
         ).prefetch_related(
@@ -228,7 +274,9 @@ def employee_create(request):
     if request.method == 'POST':
         form = EmployeeForm(request.POST)
         if form.is_valid():
-            employee = form.save()
+            employee = form.save(commit=False)
+            employee.created_by = getattr(getattr(request.user, 'profile', None), 'employee', None)
+            employee.save()
             messages.success(request, f'Employee {employee.full_name} created successfully!')
             return redirect('tenders:employee_list')
     else:
@@ -289,14 +337,15 @@ def employee_delete(request, pk):
 def requisition_list(request):
     """List all requisitions"""
     requisitions = Requisition.objects.select_related(
-        'region', 'department', 'division', 'section', 'assigned_user'
+        'region', 'department', 'division', 'section', 'assigned_user', 'tender_creator'
     ).all()
 
     search_query = request.GET.get('search', '')
     if search_query:
         requisitions = requisitions.filter(
-            Q(requisition_number__icontains=search_query) |
-            Q(shopping_cart__icontains=search_query)
+            Q(e_requisition_no__icontains=search_query) |
+            Q(shopping_cart_no__icontains=search_query) |
+            Q(requisition_description__icontains=search_query)
         )
 
     department_filter = request.GET.get('department', '')
@@ -321,8 +370,10 @@ def requisition_create(request):
     if request.method == 'POST':
         form = RequisitionForm(request.POST)
         if form.is_valid():
-            requisition = form.save()
-            messages.success(request, f'Requisition {requisition.requisition_number} created successfully!')
+            requisition = form.save(commit=False)
+            requisition.created_by = getattr(getattr(request.user, 'profile', None), 'employee', None)
+            requisition.save()
+            messages.success(request, f'Requisition {requisition.e_requisition_no} created successfully!')
             return redirect('tenders:requisition_list')
     else:
         form = RequisitionForm()
@@ -330,6 +381,7 @@ def requisition_create(request):
     context = {
         'form': form,
         'is_edit': False,
+        'deadline_days': getattr(settings, 'REQUISITION_CREATION_DEADLINE_DAYS', 7),
     }
     return render(request, 'tenders/requisition_form.html', context)
 
@@ -343,8 +395,11 @@ def requisition_edit(request, pk):
     if request.method == 'POST':
         form = RequisitionForm(request.POST, instance=requisition)
         if form.is_valid():
-            requisition = form.save()
-            messages.success(request, f'Requisition {requisition.requisition_number} updated successfully!')
+            requisition = form.save(commit=False)
+            if requisition.created_by_id is None:
+                requisition.created_by = getattr(getattr(request.user, 'profile', None), 'employee', None)
+            requisition.save()
+            messages.success(request, f'Requisition {requisition.e_requisition_no} updated successfully!')
             return redirect('tenders:requisition_list')
     else:
         form = RequisitionForm(instance=requisition)
@@ -353,6 +408,7 @@ def requisition_edit(request, pk):
         'form': form,
         'is_edit': True,
         'requisition': requisition,
+        'deadline_days': getattr(settings, 'REQUISITION_CREATION_DEADLINE_DAYS', 7),
     }
     return render(request, 'tenders/requisition_form.html', context)
 
@@ -367,7 +423,9 @@ def tender_create(request):
         evaluation_formset = TenderEvaluationCommitteeFormSet(request.POST)
         
         if form.is_valid() and opening_formset.is_valid() and evaluation_formset.is_valid():
-            tender = form.save()
+            tender = form.save(commit=False)
+            tender.created_by = getattr(getattr(request.user, 'profile', None), 'employee', None)
+            tender.save()
             
             # Save opening committee
             opening_formset.instance = tender
@@ -405,7 +463,10 @@ def tender_edit(request, pk):
         evaluation_formset = TenderEvaluationCommitteeFormSet(request.POST, instance=tender)
         
         if form.is_valid() and opening_formset.is_valid() and evaluation_formset.is_valid():
-            tender = form.save()
+            tender = form.save(commit=False)
+            if tender.created_by_id is None:
+                tender.created_by = getattr(getattr(request.user, 'profile', None), 'employee', None)
+            tender.save()
             opening_formset.save()
             evaluation_formset.save()
             
@@ -489,6 +550,7 @@ def contract_create(request, tender_pk):
         if form.is_valid() and cit_formset.is_valid():
             contract = form.save(commit=False)
             contract.tender = tender
+            contract.created_by = getattr(getattr(request.user, 'profile', None), 'employee', None)
             contract.save()
             
             # Save CIT committee
@@ -525,7 +587,10 @@ def contract_edit(request, tender_pk):
         cit_formset = ContractCITCommitteeFormSet(request.POST, instance=contract)
         
         if form.is_valid() and cit_formset.is_valid():
-            contract = form.save()
+            contract = form.save(commit=False)
+            if contract.created_by_id is None:
+                contract.created_by = getattr(getattr(request.user, 'profile', None), 'employee', None)
+            contract.save()
             cit_formset.save()
             
             messages.success(request, f'Contract for {tender.tender_id} updated successfully!')
@@ -553,7 +618,7 @@ def contract_delete(request, tender_pk):
     contract = get_object_or_404(Contract, tender=tender)
     
     if request.method == 'POST':
-        contract_ref = contract.contract_reference or f"Contract for {tender.tender_id}"
+        contract_ref = contract.contract_number or f"Contract for {tender.tender_id}"
         contract.delete()
         messages.success(request, f'{contract_ref} deleted successfully!')
         return redirect('tenders:tender_detail', pk=tender.pk)

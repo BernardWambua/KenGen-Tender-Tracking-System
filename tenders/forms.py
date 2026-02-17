@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from .models import (
     Tender, Contract, TenderOpeningCommittee, TenderEvaluationCommittee,
     ContractCITCommittee, Region, Department, Division, Section, ProcurementType,
-    LOAStatus, ContractStatus, Employee, Requisition
+    LOAStatus, ContractStatus, Employee, Requisition, Currency, Country
 )
 
 
@@ -53,6 +53,20 @@ class EmployeeSelect(forms.Select):
         return option
 
 
+class RequisitionSelect(forms.Select):
+    def __init__(self, *args, **kwargs):
+        self.procurement_type_by_requisition = kwargs.pop('procurement_type_by_requisition', {})
+        super().__init__(*args, **kwargs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        if value in self.procurement_type_by_requisition:
+            option.setdefault('attrs', {})['data-procurement-type'] = str(
+                self.procurement_type_by_requisition[value] or ''
+            )
+        return option
+
+
 class TenderForm(forms.ModelForm):
     """Form for creating and editing tenders"""
 
@@ -66,37 +80,60 @@ class TenderForm(forms.ModelForm):
                 section__name__iexact='tenders',
                 section__division__name__iexact='procurement'
             )
-        for field_name in ['requisition', 'tender_creator']:
+        for field_name in ['requisition', 'tender_creator', 'tender_creation_date', 'tender_reference_number']:
             if field_name in self.fields:
                 self.fields[field_name].required = True
         if 'requisition' in self.fields:
             self.fields['requisition'].queryset = Requisition.objects.order_by('-created_at')
+            requisition_map = dict(Requisition.objects.values_list('id', 'procurement_type'))
+            if isinstance(self.fields['requisition'].widget, RequisitionSelect):
+                self.fields['requisition'].widget.procurement_type_by_requisition = requisition_map
+
+        if not self.is_bound and 'tender_evaluation_duration_days' in self.fields:
+            requisition_id = self.initial.get('requisition') or getattr(self.instance, 'requisition_id', None)
+            if requisition_id:
+                procurement_type = Requisition.objects.filter(id=requisition_id).values_list('procurement_type', flat=True).first()
+                self.fields['tender_evaluation_duration_days'].initial = 21 if procurement_type == 'QUOTATION' else 30
+
+    def clean(self):
+        cleaned_data = super().clean()
+        eligibility = cleaned_data.get('eligibility')
+        agpo_category = cleaned_data.get('agpo_category')
+        if eligibility == 'AGPO' and not agpo_category:
+            self.add_error('agpo_category', 'Please select an AGPO category.')
+        if not cleaned_data.get('tender_evaluation_duration_days'):
+            requisition = cleaned_data.get('requisition')
+            if requisition:
+                cleaned_data['tender_evaluation_duration_days'] = 21 if requisition.procurement_type == 'QUOTATION' else 30
+        return cleaned_data
     
     class Meta:
         model = Tender
         fields = [
-            'tender_id', 'quarter', 'egp_tender_reference', 'kengen_tender_reference',
+            'tender_id', 'tender_reference_number', 'tender_creation_date',
             'requisition', 'tender_description',
-            'procurement_type', 'reservation', 'tender_status',
-            'tender_creator', 'tender_advert_date',
+            'eligibility', 'agpo_category', 'procurement_method',
+            'tender_approval_status', 'tender_step',
+            'tender_creator', 'proposed_advert_date', 'tender_advert_date',
             'tender_closing_date', 'tender_closing_time', 'tender_opening_date', 'tender_opening_time',
-            'tender_validity_duration_days', 'tender_validity_expiry_date',
+            'tender_validity_days', 'tender_validity_expiry_date',
             'tender_evaluation_duration_days', 'tender_evaluation_end_date', 'estimated_value'
         ]
         widgets = {
-            'tender_id': forms.TextInput(attrs={
+            'tender_id': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g., Tender ID : 38'
+                'placeholder': 'e.g., 38',
+                'min': 0
             }),
-            'egp_tender_reference': forms.TextInput(attrs={
+            'tender_reference_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'e.g., KENGEN/197/0001/2025-26'
             }),
-            'kengen_tender_reference': forms.TextInput(attrs={
+            'tender_creation_date': forms.DateInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g., KGN-SONDU-017-2025'
+                'type': 'date'
             }),
-            'requisition': forms.Select(attrs={
+            'requisition': RequisitionSelect(attrs={
                 'class': 'form-select'
             }),
             'tender_description': forms.Textarea(attrs={
@@ -104,20 +141,28 @@ class TenderForm(forms.ModelForm):
                 'rows': 4,
                 'placeholder': 'Enter detailed tender description...'
             }),
-            'quarter': forms.Select(attrs={
+            'eligibility': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'procurement_type': forms.Select(attrs={
+            'agpo_category': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'reservation': forms.Select(attrs={
+            'procurement_method': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'tender_status': forms.Select(attrs={
+            'tender_approval_status': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'tender_step': forms.Select(attrs={
                 'class': 'form-select'
             }),
             'tender_creator': forms.Select(attrs={
                 'class': 'form-select'
+            }),
+            'proposed_advert_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'readonly': True
             }),
             'tender_advert_date': forms.DateInput(attrs={
                 'class': 'form-control',
@@ -146,7 +191,7 @@ class TenderForm(forms.ModelForm):
                 'type': 'date',
                 'readonly': True
             }),
-            'tender_validity_duration_days': forms.NumberInput(attrs={
+            'tender_validity_days': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'e.g., 30',
                 'min': 0
@@ -169,21 +214,23 @@ class TenderForm(forms.ModelForm):
         }
         labels = {
             'tender_id': 'Tender ID',
-            'quarter': 'Quarter',
-            'egp_tender_reference': 'eGP Tender Reference',
-            'kengen_tender_reference': 'KenGen Tender Reference',
+            'tender_reference_number': 'Tender Reference Number',
+            'tender_creation_date': 'Tender Creation Date',
             'requisition': 'Requisition',
             'tender_description': 'Tender Description',
-            'procurement_type': 'Procurement Type',
-            'reservation': 'Reservation (AGPO)',
-            'tender_status': 'Tender Status',
+            'eligibility': 'Eligibility',
+            'agpo_category': 'AGPO Category',
+            'procurement_method': 'Procurement Method',
+            'tender_approval_status': 'Tender Approval Status',
+            'tender_step': 'Tender Step',
             'tender_creator': 'Tender Creator',
+            'proposed_advert_date': 'Proposed Advert Date',
             'tender_advert_date': 'Tender Advert Date',
             'tender_closing_date': 'Tender Closing Date',
             'tender_closing_time': 'Tender Closing Time',
             'tender_opening_date': 'Tender Opening Date',
             'tender_opening_time': 'Tender Opening Time',
-            'tender_validity_duration_days': 'Tender Validity Duration (Days)',
+            'tender_validity_days': 'Tender Validity (Days)',
             'tender_validity_expiry_date': 'Tender Validity Expiry Date',
             'tender_evaluation_duration_days': 'Tender Evaluation Duration (Days)',
             'tender_evaluation_end_date': 'Tender Evaluation End Date',
@@ -198,117 +245,154 @@ class ContractForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         employee_queryset = get_employee_ordered_queryset()
         if 'contract_creator' in self.fields:
-            self.fields['contract_creator'].queryset = employee_queryset
+            self.fields['contract_creator'].queryset = employee_queryset.filter(
+                section__name__icontains='contract',
+                section__division__name__iexact='compliance & reporting'
+            )
+        if 'contract_currency' in self.fields:
+            self.fields['contract_currency'].queryset = Currency.objects.order_by('code')
+        if 'country_of_origin' in self.fields:
+            self.fields['country_of_origin'].queryset = Country.objects.order_by('name')
     
     class Meta:
         model = Contract
         fields = [
-            'tender', 'contract_reference', 'contract_creator',
-            'loa_status', 'contract_status', 'supplier_name', 'supplier_county',
-            'e_purchase_order_no', 'sap_purchase_order_no', 
-            'contract_signature_date', 'contract_expiry_date',
-            'contract_duration', 'contract_delivery_period', 'contract_value',
-            'tender_security_value', 'tender_security_expiry_date',
-            'performance_security_amount', 'performance_security_duration',
-            'performance_security_expiry_date'
+            'tender', 'contract_number', 'contract_title', 'contract_creator',
+            'contract_duration_measure', 'contract_duration', 'commencement_date', 'contract_expiry_date',
+            'contract_value', 'contract_currency',
+            'contractor_supplier', 'country_of_origin',
+            'tender_security_amount', 'tender_security_validity_days', 'tender_security_expiry_date',
+            'contract_step', 'contract_status', 'responsibility',
+            'contract_delivery_period',
+            'performance_security_amount', 'performance_security_duration_days', 'performance_security_expiry_date',
+            'e_purchase_order_no', 'sap_purchase_order_no'
         ]
         widgets = {
             'tender': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'contract_reference': forms.TextInput(attrs={
+            'contract_number': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Contract reference number'
+                'placeholder': 'Contract number',
+                'min': 0
+            }),
+            'contract_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Contract title'
             }),
             'contract_creator': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'loa_status': forms.Select(attrs={
+            'contract_duration_measure': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'contract_status': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'supplier_name': forms.TextInput(attrs={
+            'contract_duration': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Name of Supplier Awarded'
+                'placeholder': 'Contract duration',
+                'min': 0
             }),
-            'supplier_county': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'County of Origin'
-            }),
-            'e_purchase_order_no': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e-Purchase Order Number'
-            }),
-            'sap_purchase_order_no': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'SAP Purchase Order Number'
-            }),
-            'contract_signature_date': forms.DateInput(attrs={
+            'commencement_date': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
             }),
             'contract_expiry_date': forms.DateInput(attrs={
                 'class': 'form-control',
-                'type': 'date'
-            }),
-            'contract_duration': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g., 12 months, 2 years'
-            }),
-            'contract_delivery_period': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Contract delivery period'
+                'type': 'date',
+                'readonly': True
             }),
             'contract_value': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Contract value in KSh',
+                'placeholder': 'Contract value',
                 'step': '0.01'
             }),
-            'tender_security_value': forms.NumberInput(attrs={
+            'contract_currency': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'contractor_supplier': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Tender security value in KSh',
+                'placeholder': 'Contractor/Supplier'
+            }),
+            'country_of_origin': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'tender_security_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Tender security amount',
                 'step': '0.01'
+            }),
+            'tender_security_validity_days': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Tender security validity (days)',
+                'min': 0
             }),
             'tender_security_expiry_date': forms.DateInput(attrs={
                 'class': 'form-control',
-                'type': 'date'
+                'type': 'date',
+                'readonly': True
+            }),
+            'contract_step': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'contract_status': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'responsibility': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'contract_delivery_period': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Contract delivery period (days)',
+                'min': 0
             }),
             'performance_security_amount': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Performance security amount in KSh',
+                'placeholder': 'Performance security amount',
                 'step': '0.01'
             }),
-            'performance_security_duration': forms.TextInput(attrs={
+            'performance_security_duration_days': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g., 12 months'
+                'placeholder': 'Performance security duration (days)',
+                'min': 0
             }),
             'performance_security_expiry_date': forms.DateInput(attrs={
                 'class': 'form-control',
-                'type': 'date'
+                'type': 'date',
+                'readonly': True
+            }),
+            'e_purchase_order_no': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'eGP Purchase Order No'
+            }),
+            'sap_purchase_order_no': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'SAP Purchase Order No'
             }),
         }
         labels = {
             'tender': 'Linked Tender',
-            'contract_reference': 'Contract Reference',
+            'contract_number': 'Contract Number',
+            'contract_title': 'Contract Title',
             'contract_creator': 'Contract Creator',
-            'loa_status': 'e-Contract Step',
-            'contract_status': 'e-Contract Status',
-            'supplier_name': 'Name of Supplier Awarded',
-            'supplier_county': 'County of Origin',
-            'e_purchase_order_no': 'e-Purchase Order Number',
-            'sap_purchase_order_no': 'SAP Purchase Order Number',
-            'contract_signature_date': 'Contract Signature Date',
-            'contract_expiry_date': 'Contract Expiry Date',
+            'contract_duration_measure': 'Contract Duration Measure',
             'contract_duration': 'Contract Duration',
-            'contract_delivery_period': 'Contract Delivery Period',
-            'contract_value': 'Contract Value (KSh)',
-            'tender_security_value': 'Tender Security Value (KSh)',
-            'tender_security_expiry_date': 'Tender Security Expiry Date',
-            'performance_security_amount': 'Performance Security Amount (KSh)',
-            'performance_security_duration': 'Performance Security Duration',
+            'commencement_date': 'Commencement Date',
+            'contract_expiry_date': 'Contract Expiry Date',
+            'contract_value': 'Contract Value',
+            'contract_currency': 'Contract Currency',
+            'contractor_supplier': 'Contractor/Supplier',
+            'country_of_origin': 'Country of Origin',
+            'tender_security_amount': 'Tender Security Amount',
+            'tender_security_validity_days': 'Tender Security Validity (Days)',
+            'tender_security_expiry_date': 'Tender Security Validity Expiry Date',
+            'contract_step': 'Contract Step',
+            'contract_status': 'Contract Status',
+            'responsibility': 'Responsibility',
+            'contract_delivery_period': 'Contract Delivery Period (Days)',
+            'performance_security_amount': 'Performance Security Amount',
+            'performance_security_duration_days': 'Performance Security Duration (Days)',
             'performance_security_expiry_date': 'Performance Security Expiry Date',
+            'e_purchase_order_no': 'eGP Purchase Order No',
+            'sap_purchase_order_no': 'SAP Purchase Order No',
         }
 
 
@@ -326,9 +410,8 @@ class TenderOpeningCommitteeForm(forms.ModelForm):
             'employee': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'role': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g., Chairperson, Member, Secretary'
+            'role': forms.Select(attrs={
+                'class': 'form-select'
             }),
         }
 
@@ -348,9 +431,8 @@ class TenderEvaluationCommitteeForm(forms.ModelForm):
             'employee': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'role': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g., Chairperson, Technical Evaluator, Financial Evaluator'
+            'role': forms.Select(attrs={
+                'class': 'form-select'
             }),
         }
 
@@ -370,9 +452,8 @@ class ContractCITCommitteeForm(forms.ModelForm):
             'employee': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'role': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g., Chairperson, Inspector, Acceptance Officer'
+            'role': forms.Select(attrs={
+                'class': 'form-select'
             }),
         }
 
@@ -419,6 +500,11 @@ class RequisitionForm(forms.ModelForm):
         employee_queryset = get_employee_ordered_queryset()
         if 'assigned_user' in self.fields:
             self.fields['assigned_user'].queryset = employee_queryset
+        if 'tender_creator' in self.fields:
+            self.fields['tender_creator'].queryset = employee_queryset.filter(
+                section__name__iexact='tenders',
+                section__division__name__iexact='procurement'
+            )
 
         department_id = self.data.get('department') if self.data else None
         division_id = self.data.get('division') if self.data else None
@@ -454,24 +540,46 @@ class RequisitionForm(forms.ModelForm):
             }
             self.fields['assigned_user'].widget.employee_org_map = employee_map
 
-        for field_name in ['region', 'department', 'division', 'section', 'assigned_user']:
+        for field_name in [
+            'e_requisition_no', 'requisition_description', 'shopping_cart_no',
+            'shopping_cart_amount', 'shopping_cart_status', 'region', 'department',
+            'division', 'section', 'assigned_user', 'procurement_type',
+            'tender_creator', 'date_assigned'
+        ]:
             if field_name in self.fields:
                 self.fields[field_name].required = True
 
     class Meta:
         model = Requisition
         fields = [
-            'requisition_number', 'shopping_cart',
-            'region', 'department', 'division', 'section', 'assigned_user'
+            'e_requisition_no', 'requisition_description',
+            'shopping_cart_no', 'shopping_cart_amount', 'shopping_cart_status',
+            'region', 'department', 'division', 'section', 'assigned_user',
+            'procurement_type', 'tender_creator', 'date_assigned', 'creation_deadline'
         ]
         widgets = {
-            'requisition_number': forms.TextInput(attrs={
+            'e_requisition_no': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'e.g., EPS/382/REQ/2025-26/1'
             }),
-            'shopping_cart': forms.TextInput(attrs={
+            'requisition_description': forms.Textarea(attrs={
                 'class': 'form-control',
-                'placeholder': 'Shopping Cart Number'
+                'rows': 3,
+                'placeholder': 'Enter requisition description...'
+            }),
+            'shopping_cart_no': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Shopping Cart Number',
+                'min': 0
+            }),
+            'shopping_cart_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Shopping Cart Amount',
+                'min': 0,
+                'step': '0.01'
+            }),
+            'shopping_cart_status': forms.Select(attrs={
+                'class': 'form-select'
             }),
             'region': forms.Select(attrs={
                 'class': 'form-select'
@@ -488,20 +596,53 @@ class RequisitionForm(forms.ModelForm):
             'assigned_user': EmployeeSelect(attrs={
                 'class': 'form-select'
             }),
+            'procurement_type': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'tender_creator': EmployeeSelect(attrs={
+                'class': 'form-select'
+            }),
+            'date_assigned': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'creation_deadline': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'readonly': True
+            }),
         }
         labels = {
-            'requisition_number': 'Requisition Number',
-            'shopping_cart': 'Shopping Cart',
+            'e_requisition_no': 'e-Requisition No',
+            'requisition_description': 'Requisition Description',
+            'shopping_cart_no': 'Shopping Cart No',
+            'shopping_cart_amount': 'Shopping Cart Amount',
+            'shopping_cart_status': 'Shopping Cart Status',
             'region': 'Region',
             'department': 'Department',
             'division': 'Division',
             'section': 'Section',
             'assigned_user': 'Requisition Owner',
+            'procurement_type': 'Procurement Type',
+            'tender_creator': 'Tender Creator',
+            'date_assigned': 'Date Assigned',
+            'creation_deadline': 'Creation Deadline',
         }
 
 
 class EmployeeForm(forms.ModelForm):
     """Form for creating and editing employees (bulk uploaded or individual entry)"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'division' in self.fields:
+            division_map = dict(Division.objects.values_list('id', 'department_id'))
+            if isinstance(self.fields['division'].widget, DivisionSelect):
+                self.fields['division'].widget.department_by_division = division_map
+        if 'section' in self.fields:
+            section_map = dict(Section.objects.values_list('id', 'division_id'))
+            if isinstance(self.fields['section'].widget, SectionSelect):
+                self.fields['section'].widget.division_by_section = section_map
     
     class Meta:
         model = Employee
@@ -537,10 +678,10 @@ class EmployeeForm(forms.ModelForm):
             'department': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'division': forms.Select(attrs={
+            'division': DivisionSelect(attrs={
                 'class': 'form-select'
             }),
-            'section': forms.Select(attrs={
+            'section': SectionSelect(attrs={
                 'class': 'form-select'
             }),
             'is_active': forms.CheckboxInput(attrs={

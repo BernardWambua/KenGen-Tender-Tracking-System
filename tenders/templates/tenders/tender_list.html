@@ -22,8 +22,8 @@
         <form method="get" class="row g-3">
             <div class="col-md-4">
                 <label class="form-label"><i class="bi bi-search"></i> Search</label>
-                <input type="text" class="form-control" name="search" 
-                       placeholder="Search by ID, description, reference..." 
+                  <input type="text" class="form-control" name="search" 
+                      placeholder="Search by ID, reference number, description..." 
                        value="{{ search_query }}">
             </div>
             <div class="col-md-2">
@@ -49,12 +49,12 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label"><i class="bi bi-tag"></i> Type</label>
-                <select class="form-select" name="procurement_type">
-                    <option value="">All Types</option>
-                    {% for type in procurement_types %}
-                    <option value="{{ type.id }}" {% if procurement_type_filter == type.id|stringformat:'s' %}selected{% endif %}>
-                        {{ type.name }}
+                <label class="form-label"><i class="bi bi-tag"></i> Method</label>
+                <select class="form-select" name="procurement_method">
+                    <option value="">All Methods</option>
+                    {% for value, label in procurement_methods %}
+                    <option value="{{ value }}" {% if procurement_method_filter == value %}selected{% endif %}>
+                        {{ label }}
                     </option>
                     {% endfor %}
                 </select>
@@ -120,9 +120,9 @@
                                 <i class="bi bi-diagram-3"></i> {{ tender.requisition.section.name }}
                             </span>
                             {% endif %}
-                            {% if tender.procurement_type %}
+                            {% if tender.procurement_method %}
                             <span class="badge" style="background-color: var(--kengen-light-blue); color: white;">
-                                {{ tender.procurement_type.name }}
+                                {{ tender.get_procurement_method_display }}
                             </span>
                             {% endif %}
                         </div>
@@ -132,11 +132,11 @@
                             {% if tender.tender_creator %}
                             <i class="bi bi-person"></i> Created by: {{ tender.tender_creator.full_name }}
                             {% endif %}
-                            {% if tender.egp_tender_reference %}
-                            | <i class="bi bi-hash"></i> eGP: {{ tender.egp_tender_reference }}
+                            {% if tender.tender_reference_number %}
+                            | <i class="bi bi-hash"></i> Ref: {{ tender.tender_reference_number }}
                             {% endif %}
-                            {% if tender.kengen_tender_reference %}
-                            | <i class="bi bi-hash"></i> KenGen: {{ tender.kengen_tender_reference }}
+                            {% if tender.tender_step %}
+                            | <i class="bi bi-flag"></i> Step: {{ tender.get_tender_step_display }}
                             {% endif %}
                         </div>
                     </div>

@@ -140,6 +140,9 @@ LOGOUT_REDIRECT_URL = 'tenders:landing'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Requisition settings
+REQUISITION_CREATION_DEADLINE_DAYS = int(os.getenv('REQUISITION_CREATION_DEADLINE_DAYS', '7'))
+
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = [
     'http://172.16.103.129:8080',

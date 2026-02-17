@@ -174,3 +174,61 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+const departmentSelect = document.getElementById('{{ form.department.id_for_label }}');
+const divisionSelect = document.getElementById('{{ form.division.id_for_label }}');
+const sectionSelect = document.getElementById('{{ form.section.id_for_label }}');
+
+function filterSelectOptions(selectElement, dataAttr, parentValue) {
+    if (!selectElement) {
+        return;
+    }
+    const options = Array.from(selectElement.options);
+    options.forEach(option => {
+        if (!option.value) {
+            option.hidden = false;
+            return;
+        }
+        const optionParent = option.getAttribute(dataAttr);
+        option.hidden = parentValue ? optionParent !== parentValue : true;
+    });
+}
+
+function ensureValidSelection(selectElement) {
+    if (!selectElement) {
+        return;
+    }
+    const selected = selectElement.selectedOptions[0];
+    if (selected && selected.hidden) {
+        selectElement.selectedIndex = 0;
+    }
+}
+
+function handleDepartmentChange() {
+    if (!departmentSelect || !divisionSelect) {
+        return;
+    }
+    const departmentValue = departmentSelect.value;
+    filterSelectOptions(divisionSelect, 'data-department-id', departmentValue);
+    ensureValidSelection(divisionSelect);
+    handleDivisionChange();
+}
+
+function handleDivisionChange() {
+    if (!divisionSelect || !sectionSelect) {
+        return;
+    }
+    const divisionValue = divisionSelect.value;
+    filterSelectOptions(sectionSelect, 'data-division-id', divisionValue);
+    ensureValidSelection(sectionSelect);
+}
+
+if (departmentSelect && divisionSelect && sectionSelect) {
+    departmentSelect.addEventListener('change', handleDepartmentChange);
+    divisionSelect.addEventListener('change', handleDivisionChange);
+    handleDepartmentChange();
+}
+</script>
+{% endblock %}

@@ -154,11 +154,23 @@
             
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.contract_reference.id_for_label }}" class="form-label">{{ form.contract_reference.label }}</label>
-                    {{ form.contract_reference }}
-                    {% if form.contract_reference.errors %}
+                    <label for="{{ form.contract_number.id_for_label }}" class="form-label">{{ form.contract_number.label }}</label>
+                    {{ form.contract_number }}
+                    {% if form.contract_number.errors %}
                         <ul class="errorlist">
-                            {% for error in form.contract_reference.errors %}
+                            {% for error in form.contract_number.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.contract_title.id_for_label }}" class="form-label">{{ form.contract_title.label }}</label>
+                    {{ form.contract_title }}
+                    {% if form.contract_title.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.contract_title.errors %}
                             <li>{{ error }}</li>
                             {% endfor %}
                         </ul>
@@ -191,13 +203,18 @@
             
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.loa_status.id_for_label }}" class="form-label">{{ form.loa_status.label }}</label>
-                    {{ form.loa_status }}
+                    <label for="{{ form.contract_step.id_for_label }}" class="form-label">{{ form.contract_step.label }}</label>
+                    {{ form.contract_step }}
                 </div>
                 
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.contract_status.id_for_label }}" class="form-label">{{ form.contract_status.label }}</label>
                     {{ form.contract_status }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.responsibility.id_for_label }}" class="form-label">{{ form.responsibility.label }}</label>
+                    {{ form.responsibility }}
                 </div>
             </div>
         </div>
@@ -211,13 +228,13 @@
             
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.supplier_name.id_for_label }}" class="form-label">{{ form.supplier_name.label }}</label>
-                    {{ form.supplier_name }}
+                    <label for="{{ form.contractor_supplier.id_for_label }}" class="form-label">{{ form.contractor_supplier.label }}</label>
+                    {{ form.contractor_supplier }}
                 </div>
                 
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.supplier_county.id_for_label }}" class="form-label">{{ form.supplier_county.label }}</label>
-                    {{ form.supplier_county }}
+                    <label for="{{ form.country_of_origin.id_for_label }}" class="form-label">{{ form.country_of_origin.label }}</label>
+                    {{ form.country_of_origin }}
                 </div>
             </div>
         </div>
@@ -251,8 +268,8 @@
             
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.contract_signature_date.id_for_label }}" class="form-label">{{ form.contract_signature_date.label }}</label>
-                    {{ form.contract_signature_date }}
+                    <label for="{{ form.commencement_date.id_for_label }}" class="form-label">{{ form.commencement_date.label }}</label>
+                    {{ form.commencement_date }}
                 </div>
                 
                 <div class="col-md-6 mb-3">
@@ -261,10 +278,15 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
+                    <label for="{{ form.contract_duration_measure.id_for_label }}" class="form-label">{{ form.contract_duration_measure.label }}</label>
+                    {{ form.contract_duration_measure }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
                     <label for="{{ form.contract_duration.id_for_label }}" class="form-label">{{ form.contract_duration.label }}</label>
                     {{ form.contract_duration }}
                 </div>
-                
+
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.contract_delivery_period.id_for_label }}" class="form-label">{{ form.contract_delivery_period.label }}</label>
                     {{ form.contract_delivery_period }}
@@ -283,9 +305,12 @@
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.contract_value.id_for_label }}" class="form-label">{{ form.contract_value.label }}</label>
                     <div class="input-group">
-                        <span class="input-group-text">KSh</span>
                         {{ form.contract_value }}
                     </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.contract_currency.id_for_label }}" class="form-label">{{ form.contract_currency.label }}</label>
+                    {{ form.contract_currency }}
                 </div>
             </div>
         </div>
@@ -299,13 +324,15 @@
             
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.tender_security_value.id_for_label }}" class="form-label">{{ form.tender_security_value.label }}</label>
-                    <div class="input-group">
-                        <span class="input-group-text">KSh</span>
-                        {{ form.tender_security_value }}
-                    </div>
+                    <label for="{{ form.tender_security_amount.id_for_label }}" class="form-label">{{ form.tender_security_amount.label }}</label>
+                    {{ form.tender_security_amount }}
                 </div>
                 
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.tender_security_validity_days.id_for_label }}" class="form-label">{{ form.tender_security_validity_days.label }}</label>
+                    {{ form.tender_security_validity_days }}
+                </div>
+
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.tender_security_expiry_date.id_for_label }}" class="form-label">{{ form.tender_security_expiry_date.label }}</label>
                     {{ form.tender_security_expiry_date }}
@@ -313,15 +340,12 @@
                 
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.performance_security_amount.id_for_label }}" class="form-label">{{ form.performance_security_amount.label }}</label>
-                    <div class="input-group">
-                        <span class="input-group-text">KSh</span>
-                        {{ form.performance_security_amount }}
-                    </div>
+                    {{ form.performance_security_amount }}
                 </div>
                 
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.performance_security_duration.id_for_label }}" class="form-label">{{ form.performance_security_duration.label }}</label>
-                    {{ form.performance_security_duration }}
+                    <label for="{{ form.performance_security_duration_days.id_for_label }}" class="form-label">{{ form.performance_security_duration_days.label }}</label>
+                    {{ form.performance_security_duration_days }}
                 </div>
                 
                 <div class="col-md-6 mb-3">
@@ -337,6 +361,12 @@
                 <h3><i class="bi bi-people"></i> Contract Inspection & Acceptance Committee</h3>
                 <p>Add members to the CIT committee</p>
             </div>
+
+            {% if cit_formset.non_form_errors %}
+            <div class="alert alert-danger">
+                {{ cit_formset.non_form_errors }}
+            </div>
+            {% endif %}
             
             {{ cit_formset.management_form }}
             <div id="cit-formset">
@@ -353,10 +383,24 @@
                             <label class="form-label">Employee</label>
                             {{ form.employee }}
                             {{ form.id }}
+                            {% if form.employee.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.employee.errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div class="col-md-5 mb-2">
                             <label class="form-label">Role</label>
                             {{ form.role }}
+                            {% if form.role.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.role.errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div class="col-md-1 mb-2">
                             {% if form.DELETE %}
@@ -416,5 +460,87 @@ function toggleFormsetDelete(btn) {
         }
     }
 }
+
+const commencementDateInput = document.getElementById('{{ form.commencement_date.id_for_label }}');
+const durationMeasureInput = document.getElementById('{{ form.contract_duration_measure.id_for_label }}');
+const durationInput = document.getElementById('{{ form.contract_duration.id_for_label }}');
+const contractExpiryInput = document.getElementById('{{ form.contract_expiry_date.id_for_label }}');
+const tenderSecurityDaysInput = document.getElementById('{{ form.tender_security_validity_days.id_for_label }}');
+const tenderSecurityExpiryInput = document.getElementById('{{ form.tender_security_expiry_date.id_for_label }}');
+const performanceSecurityDaysInput = document.getElementById('{{ form.performance_security_duration_days.id_for_label }}');
+const performanceSecurityExpiryInput = document.getElementById('{{ form.performance_security_expiry_date.id_for_label }}');
+
+function addDaysToDate(dateString, days) {
+    if (!dateString || days === '' || days === null) {
+        return '';
+    }
+    const date = new Date(`${dateString}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+    date.setDate(date.getDate() + Number(days));
+    return date.toISOString().split('T')[0];
+}
+
+function addMonthsToDate(dateString, months) {
+    if (!dateString || months === '' || months === null) {
+        return '';
+    }
+    const date = new Date(`${dateString}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+    const day = date.getDate();
+    date.setDate(1);
+    date.setMonth(date.getMonth() + Number(months));
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    date.setDate(Math.min(day, lastDay));
+    return date.toISOString().split('T')[0];
+}
+
+function updateContractExpiryDate() {
+    if (!commencementDateInput || !contractExpiryInput) {
+        return;
+    }
+    const duration = durationInput?.value;
+    const measure = durationMeasureInput?.value;
+    if (!duration || !measure) {
+        return;
+    }
+    if (measure === 'DAYS') {
+        contractExpiryInput.value = addDaysToDate(commencementDateInput.value, duration);
+    } else if (measure === 'MONTHS') {
+        contractExpiryInput.value = addMonthsToDate(commencementDateInput.value, duration);
+    } else if (measure === 'YEARS') {
+        contractExpiryInput.value = addMonthsToDate(commencementDateInput.value, Number(duration) * 12);
+    }
+}
+
+function updateTenderSecurityExpiryDate() {
+    if (!commencementDateInput || !tenderSecurityDaysInput || !tenderSecurityExpiryInput) {
+        return;
+    }
+    tenderSecurityExpiryInput.value = addDaysToDate(commencementDateInput.value, tenderSecurityDaysInput.value);
+}
+
+function updatePerformanceSecurityExpiryDate() {
+    if (!commencementDateInput || !performanceSecurityDaysInput || !performanceSecurityExpiryInput) {
+        return;
+    }
+    performanceSecurityExpiryInput.value = addDaysToDate(commencementDateInput.value, performanceSecurityDaysInput.value);
+}
+
+function updateComputedContractFields() {
+    updateContractExpiryDate();
+    updateTenderSecurityExpiryDate();
+    updatePerformanceSecurityExpiryDate();
+}
+
+commencementDateInput?.addEventListener('change', updateComputedContractFields);
+durationMeasureInput?.addEventListener('change', updateContractExpiryDate);
+durationInput?.addEventListener('input', updateContractExpiryDate);
+tenderSecurityDaysInput?.addEventListener('input', updateTenderSecurityExpiryDate);
+performanceSecurityDaysInput?.addEventListener('input', updatePerformanceSecurityExpiryDate);
+updateComputedContractFields();
 </script>
 {% endblock %}

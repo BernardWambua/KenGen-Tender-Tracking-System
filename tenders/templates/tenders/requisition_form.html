@@ -35,35 +35,62 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3 required-field">
-                        <label for="{{ form.requisition_number.id_for_label }}" class="form-label">{{ form.requisition_number.label }}</label>
-                        {{ form.requisition_number }}
-                        {% if form.requisition_number.errors %}
-                        <div class="text-danger small mt-1">{{ form.requisition_number.errors }}</div>
+                        <label for="{{ form.e_requisition_no.id_for_label }}" class="form-label">{{ form.e_requisition_no.label }}</label>
+                        {{ form.e_requisition_no }}
+                        {% if form.e_requisition_no.errors %}
+                        <div class="text-danger small mt-1">{{ form.e_requisition_no.errors }}</div>
                         {% endif %}
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.shopping_cart.id_for_label }}" class="form-label">{{ form.shopping_cart.label }}</label>
-                        {{ form.shopping_cart }}
-                        {% if form.shopping_cart.errors %}
-                        <div class="text-danger small mt-1">{{ form.shopping_cart.errors }}</div>
+                    <div class="col-md-6 mb-3 required-field">
+                        <label for="{{ form.shopping_cart_no.id_for_label }}" class="form-label">{{ form.shopping_cart_no.label }}</label>
+                        {{ form.shopping_cart_no }}
+                        {% if form.shopping_cart_no.errors %}
+                        <div class="text-danger small mt-1">{{ form.shopping_cart_no.errors }}</div>
                         {% endif %}
                     </div>
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4 mb-3 required-field">
+                    <div class="col-md-6 mb-3 required-field">
+                        <label for="{{ form.shopping_cart_amount.id_for_label }}" class="form-label">{{ form.shopping_cart_amount.label }}</label>
+                        {{ form.shopping_cart_amount }}
+                        {% if form.shopping_cart_amount.errors %}
+                        <div class="text-danger small mt-1">{{ form.shopping_cart_amount.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3 required-field">
+                        <label for="{{ form.shopping_cart_status.id_for_label }}" class="form-label">{{ form.shopping_cart_status.label }}</label>
+                        {{ form.shopping_cart_status }}
+                        {% if form.shopping_cart_status.errors %}
+                        <div class="text-danger small mt-1">{{ form.shopping_cart_status.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3 required-field">
+                        <label for="{{ form.requisition_description.id_for_label }}" class="form-label">{{ form.requisition_description.label }}</label>
+                        {{ form.requisition_description }}
+                        {% if form.requisition_description.errors %}
+                        <div class="text-danger small mt-1">{{ form.requisition_description.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3 required-field">
                         <label for="{{ form.region.id_for_label }}" class="form-label">{{ form.region.label }}</label>
                         {{ form.region }}
                     </div>
-                    <div class="col-md-4 mb-3 required-field">
+                    <div class="col-md-3 mb-3 required-field">
                         <label for="{{ form.department.id_for_label }}" class="form-label">{{ form.department.label }}</label>
                         {{ form.department }}
                     </div>
-                    <div class="col-md-4 mb-3 required-field">
+                    <div class="col-md-3 mb-3 required-field">
                         <label for="{{ form.division.id_for_label }}" class="form-label">{{ form.division.label }}</label>
                         {{ form.division }}
                     </div>
-                    <div class="col-md-4 mb-3 required-field">
+                    <div class="col-md-3 mb-3 required-field">
                         <label for="{{ form.section.id_for_label }}" class="form-label">{{ form.section.label }}</label>
                         {{ form.section }}
                     </div>
@@ -76,10 +103,43 @@
                             type="text"
                             class="form-control form-control-sm mb-2"
                             id="assigned-user-search"
-                            placeholder="Search requisition owner by name or staff number..."
+                            placeholder="Search owner (DO) by name or staff number..."
                             autocomplete="off"
                         />
                         {{ form.assigned_user }}
+                    </div>
+                    <div class="col-md-6 mb-3 required-field">
+                        <label for="{{ form.procurement_type.id_for_label }}" class="form-label">{{ form.procurement_type.label }}</label>
+                        {{ form.procurement_type }}
+                        {% if form.procurement_type.errors %}
+                        <div class="text-danger small mt-1">{{ form.procurement_type.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3 required-field">
+                        <label for="{{ form.tender_creator.id_for_label }}" class="form-label">{{ form.tender_creator.label }}</label>
+                        <input
+                            type="text"
+                            class="form-control form-control-sm mb-2"
+                            id="tender-creator-search"
+                            placeholder="Search tender creator by name or staff number..."
+                            autocomplete="off"
+                        />
+                        {{ form.tender_creator }}
+                    </div>
+                    <div class="col-md-3 mb-3 required-field">
+                        <label for="{{ form.date_assigned.id_for_label }}" class="form-label">{{ form.date_assigned.label }}</label>
+                        {{ form.date_assigned }}
+                        {% if form.date_assigned.errors %}
+                        <div class="text-danger small mt-1">{{ form.date_assigned.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="{{ form.creation_deadline.id_for_label }}" class="form-label">{{ form.creation_deadline.label }}</label>
+                        {{ form.creation_deadline }}
+                        <div class="form-text">Calculated from the date assigned.</div>
                     </div>
                 </div>
 
@@ -101,6 +161,8 @@
 <script>
 const assignedUserSearch = document.getElementById('assigned-user-search');
 const assignedUserSelect = document.getElementById('{{ form.assigned_user.id_for_label }}');
+const tenderCreatorSearch = document.getElementById('tender-creator-search');
+const tenderCreatorSelect = document.getElementById('{{ form.tender_creator.id_for_label }}');
 
 if (assignedUserSearch && assignedUserSelect) {
     const options = Array.from(assignedUserSelect.options);
@@ -129,9 +191,38 @@ if (assignedUserSearch && assignedUserSelect) {
     });
 }
 
+if (tenderCreatorSearch && tenderCreatorSelect) {
+    const options = Array.from(tenderCreatorSelect.options);
+    options.forEach(option => {
+        option.dataset.searchText = option.textContent.toLowerCase();
+    });
+
+    tenderCreatorSearch.addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+        options.forEach(option => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+            const matchesSearch = option.dataset.searchText.includes(query);
+            option.hidden = query ? !matchesSearch : false;
+        });
+
+        if (tenderCreatorSelect.selectedOptions.length) {
+            const selected = tenderCreatorSelect.selectedOptions[0];
+            if (selected.hidden) {
+                tenderCreatorSelect.selectedIndex = 0;
+            }
+        }
+    });
+}
+
 const departmentSelect = document.getElementById('{{ form.department.id_for_label }}');
 const divisionSelect = document.getElementById('{{ form.division.id_for_label }}');
 const sectionSelect = document.getElementById('{{ form.section.id_for_label }}');
+const dateAssignedInput = document.getElementById('{{ form.date_assigned.id_for_label }}');
+const creationDeadlineInput = document.getElementById('{{ form.creation_deadline.id_for_label }}');
+const deadlineDays = Number('{{ deadline_days|default:7 }}');
 
 function filterSelectOptions(selectElement, dataAttr, parentValue) {
     if (!selectElement) {
@@ -231,6 +322,37 @@ if (departmentSelect && divisionSelect && sectionSelect) {
 
 if (assignedUserSelect) {
     updateAssignedUserOptions();
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function updateCreationDeadline() {
+    if (!dateAssignedInput || !creationDeadlineInput) {
+        return;
+    }
+    const value = dateAssignedInput.value;
+    if (!value) {
+        creationDeadlineInput.value = '';
+        return;
+    }
+    const [year, month, day] = value.split('-').map(Number);
+    if (!year || !month || !day) {
+        creationDeadlineInput.value = '';
+        return;
+    }
+    const assignedDate = new Date(year, month - 1, day);
+    assignedDate.setDate(assignedDate.getDate() + (Number.isFinite(deadlineDays) ? deadlineDays : 7));
+    creationDeadlineInput.value = formatDate(assignedDate);
+}
+
+if (dateAssignedInput) {
+    dateAssignedInput.addEventListener('change', updateCreationDeadline);
+    updateCreationDeadline();
 }
 </script>
 {% endblock %}

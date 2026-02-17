@@ -1,6 +1,8 @@
+import calendar
 from datetime import datetime, timedelta
 
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -12,6 +14,7 @@ class UserProfile(models.Model):
     """Extended user profile to link system users with employee records"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     employee = models.OneToOneField('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='user_account')
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_user_profiles')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -50,6 +53,7 @@ def save_user_profile(sender, instance, **kwargs):
 class Region(models.Model):
     """Geographic regions"""
     name = models.CharField(max_length=100, unique=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_regions')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -63,6 +67,7 @@ class Region(models.Model):
 class Department(models.Model):
     """Organizational departments"""
     name = models.CharField(max_length=100, unique=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_departments')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -77,6 +82,7 @@ class Division(models.Model):
     """Organizational divisions within departments"""
     name = models.CharField(max_length=100)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='divisions')
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_divisions')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -92,6 +98,7 @@ class Section(models.Model):
     """Organizational sections within divisions"""
     name = models.CharField(max_length=100)
     division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name='sections')
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_sections')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -107,6 +114,7 @@ class ProcurementType(models.Model):
     """Types of procurement methods"""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_procurement_types')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -121,6 +129,7 @@ class LOAStatus(models.Model):
     """Letter of Award Status"""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_loa_statuses')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -137,6 +146,7 @@ class ContractStatus(models.Model):
     """e-Contract Status types"""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_contract_statuses')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -144,6 +154,35 @@ class ContractStatus(models.Model):
         ordering = ['name']
         verbose_name = "e-Contract Status"
         verbose_name_plural = "e-Contract Statuses"
+
+    def __str__(self):
+        return self.name
+
+
+class Currency(models.Model):
+    """Supported contract currencies"""
+    code = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=100)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_currencies')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['code']
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class Country(models.Model):
+    """Countries of origin"""
+    name = models.CharField(max_length=100, unique=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_countries')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
 
     def __str__(self):
         return self.name
@@ -166,6 +205,7 @@ class Employee(models.Model):
     job_title = models.CharField(max_length=100, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_employees')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -182,8 +222,22 @@ class Employee(models.Model):
 
 class Requisition(models.Model):
     """Requisition details created before a tender"""
-    requisition_number = models.CharField(max_length=100, unique=True)
-    shopping_cart = models.CharField(max_length=100, blank=True, null=True)
+    SHOPPING_CART_STATUS_CHOICES = [
+        ('APPROVED', 'Approved'),
+        ('PENDING', 'Pending'),
+        ('BUDGET_ISSUE', 'Budget Issue'),
+    ]
+
+    PROCUREMENT_TYPE_CHOICES = [
+        ('TENDER', 'Tender'),
+        ('QUOTATION', 'Quotation'),
+    ]
+
+    e_requisition_no = models.CharField(max_length=100, unique=True, verbose_name="e-Requisition No")
+    requisition_description = models.TextField()
+    shopping_cart_no = models.PositiveBigIntegerField()
+    shopping_cart_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    shopping_cart_status = models.CharField(max_length=20, choices=SHOPPING_CART_STATUS_CHOICES)
 
     # Organizational structure (captured at requisition stage)
     region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, related_name='requisitions')
@@ -200,14 +254,33 @@ class Requisition(models.Model):
         verbose_name="Requisition Owner"
     )
 
+    procurement_type = models.CharField(max_length=20, choices=PROCUREMENT_TYPE_CHOICES)
+    tender_creator = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='requisition_tender_creations'
+    )
+    date_assigned = models.DateField()
+    creation_deadline = models.DateField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_requisitions')
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.requisition_number}"
+        return f"{self.e_requisition_no}"
+
+    def save(self, *args, **kwargs):
+        if self.date_assigned:
+            deadline_days = getattr(settings, 'REQUISITION_CREATION_DEADLINE_DAYS', 7)
+            self.creation_deadline = self.date_assigned + timedelta(days=deadline_days)
+
+        super().save(*args, **kwargs)
 
 
 class Tender(models.Model):
@@ -220,61 +293,71 @@ class Tender(models.Model):
         blank=True,
         related_name='tenders'
     )
-    tender_id = models.CharField(max_length=100, unique=True)
-    egp_tender_reference = models.CharField(max_length=100, blank=True, null=True, verbose_name="eGP Tender Reference")
-    kengen_tender_reference = models.CharField(max_length=100, blank=True, null=True, verbose_name="KenGen Tender Reference")
-    
-    # Quarter
-    QUARTER_CHOICES = [
-        ('Q1', 'Quarter 1 (Jul-Sep)'),
-        ('Q2', 'Quarter 2 (Oct-Dec)'),
-        ('Q3', 'Quarter 3 (Jan-Mar)'),
-        ('Q4', 'Quarter 4 (Apr-Jun)'),
-    ]
-    quarter = models.CharField(max_length=2, choices=QUARTER_CHOICES, blank=True, null=True)
-    
+    tender_id = models.PositiveIntegerField(unique=True)
+    tender_reference_number = models.CharField(max_length=150)
+    tender_creation_date = models.DateField()
+
     # Description and classification
     tender_description = models.TextField()
-    procurement_type = models.ForeignKey(ProcurementType, on_delete=models.SET_NULL, null=True, related_name='tenders')
-    
-    # AGPO/Reservation
-    RESERVATION_CHOICES = [
-        ('AGPO', 'AGPO (Access to Government Procurement Opportunities)'),
-        ('PWD', 'Persons with Disabilities'),
+
+    ELIGIBILITY_CHOICES = [
+        ('INTERNATIONAL', 'Open International'),
+        ('NATIONAL', 'Open National'),
+        ('CITIZEN_CONTRACTOR', 'Citizen Contractor'),
+        ('AGPO', 'AGPO'),
+    ]
+    AGPO_CATEGORY_CHOICES = [
+        ('PLWD', 'PLWD'),
         ('YOUTH', 'Youth'),
         ('WOMEN', 'Women'),
-        ('OPEN', 'Open/Not Reserved'),
     ]
-    reservation = models.CharField(max_length=20, choices=RESERVATION_CHOICES, blank=True, null=True, verbose_name="Reservation (AGPO)")
-    
-    # Tender Status
-    TENDER_STATUS_CHOICES = [
+    eligibility = models.CharField(max_length=20, choices=ELIGIBILITY_CHOICES)
+    agpo_category = models.CharField(max_length=20, choices=AGPO_CATEGORY_CHOICES, blank=True, null=True)
+
+    PROCUREMENT_METHOD_CHOICES = [
+        ('OPEN_TENDER', 'Open Tender'),
+        ('RESTRICTED_TENDER', 'Restricted Tender'),
+        ('REQUEST_FOR_QUOTATION', 'Request for Quotation'),
+        ('DIRECT_PROCUREMENT', 'Direct Procurement'),
+        ('REQUEST_FOR_PROPOSAL', 'Request for Proposal'),
+        ('EXPRESSION_OF_INTEREST', 'Expression of Interest'),
+        ('PREQUALIFICATION', 'Pre-Qualification'),
+        ('FRAMEWORK', 'Framework'),
+
+    ]
+    procurement_method = models.CharField(max_length=30, choices=PROCUREMENT_METHOD_CHOICES, blank=True, null=True)
+    # Approval and workflow
+    TENDER_APPROVAL_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('CLARIFICATION_REQUESTED', 'Clarification Requested'),
+    ]
+    tender_approval_status = models.CharField(max_length=30, choices=TENDER_APPROVAL_STATUS_CHOICES, blank=True, null=True)
+
+    TENDER_STEP_CHOICES = [
         ('DRAFT', 'Draft'),
-        ('PUBLISHED', 'Published'),
+        ('ACTIVE', 'Active'),
         ('CLOSED', 'Closed'),
-        ('UNDER_EVALUATION', 'Under Evaluation'),
-        ('EVALUATED', 'Evaluated'),
-        ('AWARDED', 'Awarded'),
+        ('EVALUATION', 'Evaluation'),
+        ('NEGOTIATION', 'Negotiation'),
         ('CANCELLED', 'Cancelled'),
     ]
-    tender_status = models.CharField(max_length=20, choices=TENDER_STATUS_CHOICES, blank=True, null=True, verbose_name="Tender Status")
-    
-    # Location
-    
+    tender_step = models.CharField(max_length=20, choices=TENDER_STEP_CHOICES, blank=True, null=True)
+
     # Creators
     tender_creator = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, related_name='created_tenders')
-    
+
     # Important dates
+    proposed_advert_date = models.DateField(blank=True, null=True)
     tender_advert_date = models.DateField(blank=True, null=True)
     tender_closing_date = models.DateField(blank=True, null=True)
     tender_closing_time = models.TimeField(blank=True, null=True)
     tender_opening_date = models.DateField(blank=True, null=True)
     tender_opening_time = models.TimeField(blank=True, null=True)
     tender_validity_expiry_date = models.DateField(blank=True, null=True)
-    tender_validity_duration_days = models.PositiveIntegerField(blank=True, null=True, help_text="Validity period in days")
+    tender_validity_days = models.PositiveIntegerField(blank=True, null=True, help_text="Validity period in days")
     
     # Evaluation details
-    tender_evaluation_duration = models.CharField(max_length=50, blank=True, null=True, help_text="e.g., 30 Days, 21 Days")
     tender_evaluation_duration_days = models.PositiveIntegerField(blank=True, null=True, help_text="Evaluation duration in days")
     tender_evaluation_end_date = models.DateField(blank=True, null=True)
     
@@ -284,6 +367,7 @@ class Tender(models.Model):
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_tender_records')
 
     class Meta:
         ordering = ['-tender_advert_date', '-created_at']
@@ -292,6 +376,16 @@ class Tender(models.Model):
         return f"{self.tender_id} - {self.tender_description[:50]}"
 
     def save(self, *args, **kwargs):
+        if not self.tender_creation_date:
+            self.tender_creation_date = datetime.now().date()
+
+        if self.eligibility != 'AGPO':
+            self.agpo_category = None
+
+        if self.tender_creation_date and not self.proposed_advert_date:
+            proposed_days = getattr(settings, 'TENDER_PROPOSED_ADVERT_DAYS', 7)
+            self.proposed_advert_date = self.tender_creation_date + timedelta(days=proposed_days)
+
         if self.tender_closing_date:
             self.tender_opening_date = self.tender_closing_date
 
@@ -300,13 +394,33 @@ class Tender(models.Model):
             self.tender_opening_time = opening_datetime.time()
 
         base_validity_date = self.tender_opening_date or self.tender_closing_date
-        if base_validity_date and self.tender_validity_duration_days is not None:
-            self.tender_validity_expiry_date = base_validity_date + timedelta(days=self.tender_validity_duration_days)
+        if base_validity_date and self.tender_validity_days is not None:
+            self.tender_validity_expiry_date = base_validity_date + timedelta(days=self.tender_validity_days)
 
         if self.tender_opening_date and self.tender_evaluation_duration_days is not None:
             self.tender_evaluation_end_date = self.tender_opening_date + timedelta(days=self.tender_evaluation_duration_days)
 
+        if self.tender_evaluation_duration_days is None and self.requisition_id:
+            procurement_type = getattr(self.requisition, 'procurement_type', None)
+            if procurement_type:
+                self.tender_evaluation_duration_days = 21 if procurement_type == 'QUOTATION' else 30
+                if self.tender_opening_date:
+                    self.tender_evaluation_end_date = self.tender_opening_date + timedelta(days=self.tender_evaluation_duration_days)
+
         super().save(*args, **kwargs)
+
+    @property
+    def days_remaining_to_opening(self):
+        target_date = self.tender_opening_date or self.tender_closing_date
+        if not target_date:
+            return None
+        return (target_date - datetime.now().date()).days
+
+    @property
+    def days_remaining_for_evaluation(self):
+        if not self.tender_evaluation_end_date:
+            return None
+        return (self.tender_evaluation_end_date - datetime.now().date()).days
 
 
 class Contract(models.Model):
@@ -314,43 +428,73 @@ class Contract(models.Model):
     # Link to tender (OneToOne relationship - each tender can have one contract)
     tender = models.OneToOneField(Tender, on_delete=models.CASCADE, related_name='contract')
     
+    DURATION_MEASURE_CHOICES = [
+        ('DAYS', 'Days'),
+        ('MONTHS', 'Months'),
+        ('YEARS', 'Years'),
+    ]
+
+    RESPONSIBILITY_CHOICES = [
+        ('CONTRACT_CREATOR', 'Contract Creator'),
+        ('SUPPLIER', 'Supplier'),
+        ('LEGAL', 'Legal'),
+        ('HOP', 'Head of Procurement'),
+        ('AO', 'Accounting Officer'),
+        ('TENDER_CREATOR', 'Tender Creator'),
+    ]
+
+    CONTRACT_STEP_CHOICES = [
+        ('ION', 'Intention of Notification'),
+        ('LOA', 'Letter of Award'),
+        ('ARB', 'ARB Decision'),
+        ('DRAFT', 'Draft Contract'),
+        ('FINAL', 'Final Contract'),
+    ]
+
     # Contract reference
-    contract_reference = models.CharField(max_length=100, blank=True, null=True, help_text="Contract reference number")
+    contract_number = models.PositiveIntegerField(unique=True, null=True, blank=True)
+    contract_title = models.CharField(max_length=255, blank=True, null=True)
     
     # Contract creator
     contract_creator = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_contracts')
-    
-    # Status information
-    loa_status = models.ForeignKey(LOAStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='contracts', verbose_name="e-Contract Step")
-    contract_status = models.ForeignKey(ContractStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='contracts')
-    
-    # Purchase orders
-    e_purchase_order_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="e-Purchase Order No")
-    sap_purchase_order_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="SAP Purchase Order No")
-    
-    # Supplier information
-    supplier_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Name of Supplier Awarded")
-    supplier_county = models.CharField(max_length=100, blank=True, null=True, verbose_name="County of Origin")
-    
-    # Contract dates
-    contract_signature_date = models.DateField(blank=True, null=True, verbose_name="Contract Signature Date")
-    contract_expiry_date = models.DateField(blank=True, null=True, verbose_name="Contract Expiry Date")
-    
-    # Contract duration and delivery
-    contract_duration = models.CharField(max_length=100, blank=True, null=True, verbose_name="Contract Duration")
-    contract_delivery_period = models.CharField(max_length=100, blank=True, null=True, verbose_name="Contract Delivery Period")
-    
+
+    # Contract duration and dates
+    contract_duration_measure = models.CharField(max_length=10, choices=DURATION_MEASURE_CHOICES, blank=True, null=True)
+    contract_duration = models.PositiveIntegerField(blank=True, null=True)
+    commencement_date = models.DateField(blank=True, null=True)
+    contract_expiry_date = models.DateField(blank=True, null=True)
+
     # Contract financial details
     contract_value = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    contract_currency = models.ForeignKey(Currency, on_delete=models.SET_NULL, null=True, blank=True, related_name='contracts')
+    
+    # Supplier information
+    contractor_supplier = models.CharField(max_length=200, blank=True, null=True)
+    country_of_origin = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='contracts')
     
     # Security information
-    tender_security_value = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    tender_security_amount = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    tender_security_validity_days = models.PositiveIntegerField(blank=True, null=True)
     tender_security_expiry_date = models.DateField(blank=True, null=True)
     performance_security_amount = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
-    performance_security_duration = models.CharField(max_length=100, blank=True, null=True)
+    performance_security_duration_days = models.PositiveIntegerField(blank=True, null=True)
     performance_security_expiry_date = models.DateField(blank=True, null=True)
     
+    # Status information
+    contract_step = models.CharField(max_length=20, choices=CONTRACT_STEP_CHOICES, blank=True, null=True)
+    contract_status = models.ForeignKey(ContractStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='contracts')
+    responsibility = models.CharField(max_length=50, choices=RESPONSIBILITY_CHOICES, blank=True, null=True)
+    
+    # Delivery
+    contract_delivery_period_measure = models.CharField(max_length=10, choices=DURATION_MEASURE_CHOICES, blank=True, null=True)
+    contract_delivery_period = models.PositiveIntegerField(blank=True, null=True)
+    
+    # Purchase orders
+    e_purchase_order_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="eGP Purchase Order No")
+    sap_purchase_order_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="SAP Purchase Order No")
+    
     # Audit fields
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_contract_records')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -360,12 +504,45 @@ class Contract(models.Model):
     def __str__(self):
         return f"Contract for {self.tender.tender_id}"
 
+    @staticmethod
+    def add_months(start_date, months):
+        if not start_date or months is None:
+            return None
+        month_index = start_date.month - 1 + months
+        year = start_date.year + month_index // 12
+        month = month_index % 12 + 1
+        day = min(start_date.day, calendar.monthrange(year, month)[1])
+        return start_date.replace(year=year, month=month, day=day)
+
+    def save(self, *args, **kwargs):
+        if self.commencement_date and self.contract_duration and self.contract_duration_measure:
+            if self.contract_duration_measure == 'DAYS':
+                self.contract_expiry_date = self.commencement_date + timedelta(days=self.contract_duration)
+            elif self.contract_duration_measure == 'MONTHS':
+                self.contract_expiry_date = self.add_months(self.commencement_date, self.contract_duration)
+            elif self.contract_duration_measure == 'YEARS':
+                self.contract_expiry_date = self.add_months(self.commencement_date, self.contract_duration * 12)
+
+        if self.commencement_date and self.tender_security_validity_days is not None:
+            self.tender_security_expiry_date = self.commencement_date + timedelta(days=self.tender_security_validity_days)
+
+        if self.commencement_date and self.performance_security_duration_days is not None:
+            self.performance_security_expiry_date = self.commencement_date + timedelta(days=self.performance_security_duration_days)
+
+        super().save(*args, **kwargs)
+
 
 class TenderOpeningCommittee(models.Model):
     """Many-to-many relationship for tender opening committee members"""
+    ROLE_CHOICES = [
+        ('MEMBER', 'Member'),
+        ('CHAIR', 'Chair'),
+        ('SECRETARY', 'Secretary'),
+    ]
     tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='opening_committee_members')
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='opening_committees')
-    role = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., Chairperson, Member, Secretary")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, blank=True, null=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_opening_committee_members')
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -379,9 +556,15 @@ class TenderOpeningCommittee(models.Model):
 
 class TenderEvaluationCommittee(models.Model):
     """Many-to-many relationship for tender evaluation committee members"""
+    ROLE_CHOICES = [
+        ('MEMBER', 'Member'),
+        ('CHAIR', 'Chair'),
+        ('SECRETARY', 'Secretary'),
+    ]
     tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='evaluation_committee_members')
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='evaluation_committees')
-    role = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., Chairperson, Technical Evaluator, Financial Evaluator")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, blank=True, null=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_evaluation_committee_members')
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -395,9 +578,15 @@ class TenderEvaluationCommittee(models.Model):
 
 class ContractCITCommittee(models.Model):
     """Many-to-many relationship for contract CIT/Inspection & Acceptance committee members"""
+    ROLE_CHOICES = [
+        ('MEMBER', 'Member'),
+        ('CHAIR', 'Chair'),
+        ('SECRETARY', 'Secretary'),
+    ]
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name='cit_committee_members')
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='cit_committees')
-    role = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., Chairperson, Inspector, Acceptance Officer")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, blank=True, null=True)
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_cit_committee_members')
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

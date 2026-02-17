@@ -31,14 +31,17 @@
                     <h5>Contract Details:</h5>
                     <ul class="list-unstyled mb-4">
                         <li><strong>Tender:</strong> {{ tender.tender_id }}</li>
-                        {% if contract.contract_reference %}
-                        <li><strong>Contract Reference:</strong> {{ contract.contract_reference }}</li>
+                        {% if contract.contract_number %}
+                        <li><strong>Contract Number:</strong> {{ contract.contract_number }}</li>
                         {% endif %}
-                        {% if contract.supplier_name %}
-                        <li><strong>Supplier:</strong> {{ contract.supplier_name }}</li>
+                        {% if contract.contract_title %}
+                        <li><strong>Contract Title:</strong> {{ contract.contract_title }}</li>
+                        {% endif %}
+                        {% if contract.contractor_supplier %}
+                        <li><strong>Supplier:</strong> {{ contract.contractor_supplier }}</li>
                         {% endif %}
                         {% if contract.contract_value %}
-                        <li><strong>Contract Value:</strong> KSh {{ contract.contract_value|floatformat:2 }}</li>
+                        <li><strong>Contract Value:</strong> {{ contract.contract_currency.code|default:"" }} {{ contract.contract_value|floatformat:2 }}</li>
                         {% endif %}
                     </ul>
 

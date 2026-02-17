@@ -43,12 +43,30 @@
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
+            <div class="stat-card info">
+                <div class="stat-icon">
+                    <i class="bi bi-clipboard-check"></i>
+                </div>
+                <h3>{{ total_requisitions|intcomma }}</h3>
+                <p>Total Requisitions</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
             <div class="stat-card success">
                 <div class="stat-icon">
                     <i class="bi bi-hourglass-split"></i>
                 </div>
                 <h3>{{ active_tenders|intcomma }}</h3>
                 <p>Active Tenders</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card warning">
+                <div class="stat-icon">
+                    <i class="bi bi-file-check"></i>
+                </div>
+                <h3>{{ total_contracts|intcomma }}</h3>
+                <p>Total Contracts</p>
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
@@ -139,6 +157,88 @@
     </div>
 </section>
 
+<!-- Recent Requisitions & Contracts -->
+{% if recent_requisitions or recent_contracts %}
+<section class="container my-5">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clipboard-check"></i> Recent Requisitions</span>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'tenders:requisition_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if recent_requisitions %}
+                    <ul class="list-group list-group-flush">
+                        {% for requisition in recent_requisitions %}
+                        <li class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ requisition.e_requisition_no }}</strong>
+                                    {% if requisition.department %}
+                                    <div class="text-muted small">
+                                        <i class="bi bi-building"></i> {{ requisition.department.name }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ requisition.created_at|timesince }} ago</small>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No recent requisitions</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-file-check"></i> Recent Contracts</span>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'tenders:tender_list' %}" class="btn btn-sm btn-outline-primary">View Tenders</a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if recent_contracts %}
+                    <ul class="list-group list-group-flush">
+                        {% for contract in recent_contracts %}
+                        <li class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>
+                                        {% if user.is_authenticated %}
+                                            <a href="{% url 'tenders:tender_detail' contract.tender.pk %}" class="text-decoration-none">
+                                                {{ contract.contract_number|default:contract.tender.tender_id }}
+                                            </a>
+                                        {% else %}
+                                            {{ contract.contract_number|default:contract.tender.tender_id }}
+                                        {% endif %}
+                                    </strong>
+                                    {% if contract.contract_status %}
+                                    <div class="text-muted small">
+                                        <i class="bi bi-flag"></i> {{ contract.contract_status.name }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ contract.created_at|timesince }} ago</small>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No recent contracts</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- Recent Tenders Section -->
 {% if recent_tenders %}
 <section class="container my-5">
@@ -170,10 +270,10 @@
                 <div class="row align-items-center">
                     <div class="col-lg-8">
                         <h5 class="mb-2">
-                            {% if user.is_authenticated %}
-                                <a href="{% url 'tenders:tender_detail' tender.pk %}" class="text-decoration-none text-dark">
-                                    {{ tender.tender_id }}
-                                </a>
+                                {% if user.is_authenticated %}
+                                    <a href="{% url 'tenders:tender_detail' tender.pk %}" class="text-decoration-none text-dark">
+                                        {{ tender.tender_id }}
+                                    </a>
                             {% else %}
                                 {{ tender.tender_id }}
                             {% endif %}
@@ -190,9 +290,9 @@
                                 <i class="bi bi-building"></i> {{ tender.requisition.department.name }}
                             </span>
                             {% endif %}
-                            {% if tender.procurement_type %}
+                                {% if tender.procurement_method %}
                             <span class="badge" style="background-color: var(--kengen-light-blue); color: white;">
-                                {{ tender.procurement_type.name }}
+                                    {{ tender.get_procurement_method_display }}
                             </span>
                             {% endif %}
                         </div>

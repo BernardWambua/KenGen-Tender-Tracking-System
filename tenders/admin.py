@@ -2,14 +2,22 @@ from django.contrib import admin
 from .models import (
     Region, Department, Division, Section, ProcurementType,
     LOAStatus, ContractStatus, Employee, Tender, Contract, Requisition,
-    TenderOpeningCommittee, TenderEvaluationCommittee, ContractCITCommittee, UserProfile
+    TenderOpeningCommittee, TenderEvaluationCommittee, ContractCITCommittee, UserProfile,
+    Currency, Country
 )
 
 # Register your models here.
 
 # User Profile Admin
+class CreatedByAdminMixin:
+    def save_model(self, request, obj, form, change):
+        if hasattr(obj, 'created_by') and not obj.created_by_id:
+            obj.created_by = getattr(getattr(request.user, 'profile', None), 'employee', None)
+        super().save_model(request, obj, form, change)
+
+
 @admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['user', 'employee', 'created_at']
     list_filter = ['created_at']
     search_fields = ['user__username', 'employee__employee_id', 'employee__first_name', 'employee__last_name']
@@ -18,52 +26,64 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 # Lookup models - simple admin
 @admin.register(Region)
-class RegionAdmin(admin.ModelAdmin):
+class RegionAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'created_at']
     search_fields = ['name']
 
 
 @admin.register(Department)
-class DepartmentAdmin(admin.ModelAdmin):
+class DepartmentAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'created_at']
     search_fields = ['name']
 
 
 @admin.register(Division)
-class DivisionAdmin(admin.ModelAdmin):
+class DivisionAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'department', 'created_at']
     list_filter = ['department']
     search_fields = ['name', 'department__name']
 
 
 @admin.register(Section)
-class SectionAdmin(admin.ModelAdmin):
+class SectionAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'division', 'created_at']
     list_filter = ['division__department', 'division']
     search_fields = ['name', 'division__name']
 
 
 @admin.register(ProcurementType)
-class ProcurementTypeAdmin(admin.ModelAdmin):
+class ProcurementTypeAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'description', 'created_at']
     search_fields = ['name', 'description']
 
 
 @admin.register(LOAStatus)
-class LOAStatusAdmin(admin.ModelAdmin):
+class LOAStatusAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'description', 'created_at']
     search_fields = ['name', 'description']
 
 
 @admin.register(ContractStatus)
-class ContractStatusAdmin(admin.ModelAdmin):
+class ContractStatusAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'description', 'created_at']
     search_fields = ['name', 'description']
 
 
+@admin.register(Currency)
+class CurrencyAdmin(CreatedByAdminMixin, admin.ModelAdmin):
+    list_display = ['code', 'name', 'created_at']
+    search_fields = ['code', 'name']
+
+
+@admin.register(Country)
+class CountryAdmin(CreatedByAdminMixin, admin.ModelAdmin):
+    list_display = ['name', 'created_at']
+    search_fields = ['name']
+
+
 # Employee Admin
 @admin.register(Employee)
-class EmployeeAdmin(admin.ModelAdmin):
+class EmployeeAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['employee_id', 'first_name', 'last_name', 'email', 'department', 'division', 'section', 'is_active']
     list_filter = ['department', 'division', 'is_active']
     search_fields = ['employee_id', 'first_name', 'last_name', 'email']
@@ -88,10 +108,17 @@ class EmployeeAdmin(admin.ModelAdmin):
 
 # Requisition Admin
 @admin.register(Requisition)
-class RequisitionAdmin(admin.ModelAdmin):
-    list_display = ['requisition_number', 'shopping_cart', 'region', 'department', 'division', 'section', 'assigned_user', 'created_at']
+class RequisitionAdmin(CreatedByAdminMixin, admin.ModelAdmin):
+    list_display = [
+        'e_requisition_no', 'shopping_cart_no', 'shopping_cart_amount', 'shopping_cart_status',
+        'region', 'department', 'division', 'section', 'assigned_user', 'procurement_type',
+        'tender_creator', 'date_assigned', 'creation_deadline', 'created_at'
+    ]
     list_filter = ['region', 'department', 'division', 'section']
-    search_fields = ['requisition_number', 'shopping_cart', 'assigned_user__first_name', 'assigned_user__last_name']
+    search_fields = [
+        'e_requisition_no', 'shopping_cart_no', 'requisition_description',
+        'assigned_user__first_name', 'assigned_user__last_name'
+    ]
     readonly_fields = ['created_at', 'updated_at']
 
 
@@ -120,26 +147,26 @@ class ContractInline(admin.StackedInline):
     autocomplete_fields = ['contract_creator']
     fieldsets = (
         ('Contract Information', {
-            'fields': ('contract_reference', 'contract_creator')
+            'fields': ('contract_number', 'contract_title', 'contract_creator')
         }),
         ('Status', {
-            'fields': ('loa_status', 'contract_status')
+            'fields': ('contract_step', 'contract_status', 'responsibility')
         }),
         ('Supplier Information', {
-            'fields': ('supplier_name', 'supplier_county')
+            'fields': ('contractor_supplier', 'country_of_origin')
         }),
         ('Purchase Orders', {
             'fields': ('e_purchase_order_no', 'sap_purchase_order_no')
         }),
         ('Contract Dates', {
-            'fields': ('contract_signature_date', 'contract_expiry_date', 'contract_duration', 'contract_delivery_period')
+            'fields': ('commencement_date', 'contract_expiry_date', 'contract_duration_measure', 'contract_duration', 'contract_delivery_period')
         }),
         ('Financial', {
-            'fields': ('contract_value',)
+            'fields': ('contract_value', 'contract_currency')
         }),
         ('Security', {
-            'fields': ('tender_security_value', 'tender_security_expiry_date', 
-                      'performance_security_amount', 'performance_security_duration', 
+            'fields': ('tender_security_amount', 'tender_security_validity_days', 'tender_security_expiry_date',
+                      'performance_security_amount', 'performance_security_duration_days',
                       'performance_security_expiry_date')
         }),
     )
@@ -147,19 +174,19 @@ class ContractInline(admin.StackedInline):
 
 # Tender Admin
 @admin.register(Tender)
-class TenderAdmin(admin.ModelAdmin):
+class TenderAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = [
-        'tender_id', 'tender_description_short', 'quarter', 'procurement_type', 
-        'requisition', 'tender_status', 'tender_advert_date', 'tender_closing_date',
-        'estimated_value'
+        'tender_id', 'tender_reference_number', 'tender_description_short', 'procurement_method',
+        'requisition', 'tender_step', 'tender_approval_status', 'tender_advert_date',
+        'tender_closing_date', 'estimated_value', 'created_by'
     ]
     list_filter = [
-        'quarter', 'tender_status', 'reservation', 'procurement_type', 
+        'tender_step', 'tender_approval_status', 'eligibility', 'agpo_category', 'procurement_method',
         'requisition__region', 'requisition__department', 'requisition__division', 'requisition__section', 'tender_advert_date'
     ]
     search_fields = [
-        'tender_id', 'tender_description', 'egp_tender_reference', 
-        'kengen_tender_reference', 'requisition__requisition_number'
+        'tender_id', 'tender_reference_number', 'tender_description',
+        'requisition__e_requisition_no'
     ]
     autocomplete_fields = ['tender_creator', 'requisition']
     readonly_fields = ['created_at', 'updated_at']
@@ -167,23 +194,20 @@ class TenderAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Identification', {
-            'fields': ('tender_id', 'quarter', 'egp_tender_reference', 'kengen_tender_reference',
-                      'requisition')
+            'fields': ('tender_id', 'tender_reference_number', 'tender_creation_date', 'requisition')
         }),
         ('Description & Classification', {
-            'fields': ('tender_description', 'procurement_type', 'reservation', 'tender_status')
-        }),
-        ('Location', {
-            'fields': ('region',)
+            'fields': ('tender_description', 'procurement_method', 'eligibility', 'agpo_category',
+                      'tender_approval_status', 'tender_step')
         }),
         ('Creator', {
-            'fields': ('tender_creator',)
+            'fields': ('tender_creator', 'created_by')
         }),
         ('Important Dates', {
-            'fields': ('tender_advert_date', 'tender_closing_date', 'tender_closing_time',
-                      'tender_opening_date', 'tender_opening_time', 'tender_validity_duration_days',
-                      'tender_validity_expiry_date', 'tender_evaluation_duration_days',
-                      'tender_evaluation_end_date')
+            'fields': ('proposed_advert_date', 'tender_advert_date', 'tender_closing_date',
+                      'tender_closing_time', 'tender_opening_date', 'tender_opening_time',
+                      'tender_validity_days', 'tender_validity_expiry_date',
+                      'tender_evaluation_duration_days', 'tender_evaluation_end_date')
         }),
         ('Financial', {
             'fields': ('estimated_value',)
@@ -203,50 +227,47 @@ class TenderAdmin(admin.ModelAdmin):
 
 # Contract Admin
 @admin.register(Contract)
-class ContractAdmin(admin.ModelAdmin):
+class ContractAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = [
-        'tender', 'contract_reference', 'supplier_name', 'loa_status', 'contract_status',
-        'contract_value', 'contract_signature_date'
+        'tender', 'contract_number', 'contract_title', 'contract_step', 'contract_status',
+        'contract_value', 'commencement_date'
     ]
-    list_filter = ['loa_status', 'contract_status', 'contract_signature_date', 'supplier_county']
+    list_filter = ['contract_step', 'contract_status', 'commencement_date', 'country_of_origin']
     search_fields = [
-        'contract_reference', 'tender__tender_id', 'supplier_name', 'supplier_county',
+        'contract_number', 'contract_title', 'tender__tender_id', 'contractor_supplier',
         'e_purchase_order_no', 'sap_purchase_order_no'
     ]
     autocomplete_fields = ['tender', 'contract_creator']
     readonly_fields = ['created_at', 'updated_at']
-    date_hierarchy = 'contract_signature_date'
+    date_hierarchy = 'commencement_date'
     
     fieldsets = (
         ('Tender Link', {
             'fields': ('tender',)
         }),
         ('Contract Information', {
-            'fields': ('contract_reference', 'contract_creator')
+            'fields': ('contract_number', 'contract_title', 'contract_creator')
         }),
         ('Status', {
-            'fields': ('loa_status', 'contract_status')
+            'fields': ('contract_step', 'contract_status', 'responsibility')
         }),
         ('Supplier Information', {
-            'fields': ('supplier_name', 'supplier_county')
+            'fields': ('contractor_supplier', 'country_of_origin')
         }),
         ('Purchase Orders', {
             'fields': ('e_purchase_order_no', 'sap_purchase_order_no')
         }),
         ('Contract Dates & Duration', {
-            'fields': ('contract_signature_date', 'contract_expiry_date', 
-                      'contract_duration', 'contract_delivery_period')
+            'fields': ('commencement_date', 'contract_expiry_date',
+                      'contract_duration_measure', 'contract_duration', 'contract_delivery_period')
         }),
         ('Financial', {
-            'fields': ('contract_value',)
+            'fields': ('contract_value', 'contract_currency')
         }),
         ('Security Details', {
-            'fields': ('tender_security_value', 'tender_security_expiry_date',
-                      'performance_security_amount', 'performance_security_duration',
+            'fields': ('tender_security_amount', 'tender_security_validity_days', 'tender_security_expiry_date',
+                      'performance_security_amount', 'performance_security_duration_days',
                       'performance_security_expiry_date')
-        }),
-        ('Committees', {
-            'fields': ('cit_committee',)
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),

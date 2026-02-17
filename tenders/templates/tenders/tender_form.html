@@ -164,7 +164,31 @@
                         </ul>
                     {% endif %}
                 </div>
-                
+
+                <div class="col-md-6 mb-3 required-field">
+                    <label for="{{ form.tender_reference_number.id_for_label }}" class="form-label">{{ form.tender_reference_number.label }}</label>
+                    {{ form.tender_reference_number }}
+                    {% if form.tender_reference_number.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.tender_reference_number.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3 required-field">
+                    <label for="{{ form.tender_creation_date.id_for_label }}" class="form-label">{{ form.tender_creation_date.label }}</label>
+                    {{ form.tender_creation_date }}
+                    {% if form.tender_creation_date.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.tender_creation_date.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
                 <div class="col-md-6 mb-3 required-field">
                     <label for="{{ form.requisition.id_for_label }}" class="form-label">{{ form.requisition.label }}</label>
                     {{ form.requisition }}
@@ -176,20 +200,10 @@
                         </ul>
                     {% endif %}
                 </div>
-                
+
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.egp_tender_reference.id_for_label }}" class="form-label">{{ form.egp_tender_reference.label }}</label>
-                    {{ form.egp_tender_reference }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.kengen_tender_reference.id_for_label }}" class="form-label">{{ form.kengen_tender_reference.label }}</label>
-                    {{ form.kengen_tender_reference }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.procurement_type.id_for_label }}" class="form-label">{{ form.procurement_type.label }}</label>
-                    {{ form.procurement_type }}
+                    <label for="{{ form.procurement_method.id_for_label }}" class="form-label">{{ form.procurement_method.label }}</label>
+                    {{ form.procurement_method }}
                 </div>
             </div>
         </div>
@@ -214,27 +228,37 @@
             </div>
         </div>
 
-        <!-- Requisition -->
+        <!-- Eligibility & Assignment -->
         <div class="form-section">
             <div class="form-section-header">
-                <h3><i class="bi bi-clipboard-check"></i> Requisition</h3>
-                <p>Select the requisition for this tender</p>
+                <h3><i class="bi bi-clipboard-check"></i> Eligibility & Assignment</h3>
+                <p>Set eligibility, approval status, and assigned staff</p>
             </div>
             
             <div class="row">
                 <div class="col-md-6 mb-3 required-field">
-                    <label for="{{ form.requisition.id_for_label }}" class="form-label">{{ form.requisition.label }}</label>
-                    {{ form.requisition }}
+                    <label for="{{ form.eligibility.id_for_label }}" class="form-label">{{ form.eligibility.label }}</label>
+                    {{ form.eligibility }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.agpo_category.id_for_label }}" class="form-label">{{ form.agpo_category.label }}</label>
+                    {{ form.agpo_category }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.tender_approval_status.id_for_label }}" class="form-label">{{ form.tender_approval_status.label }}</label>
+                    {{ form.tender_approval_status }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.tender_step.id_for_label }}" class="form-label">{{ form.tender_step.label }}</label>
+                    {{ form.tender_step }}
                 </div>
 
                 <div class="col-md-6 mb-3 required-field">
                     <label for="{{ form.tender_creator.id_for_label }}" class="form-label">{{ form.tender_creator.label }}</label>
                     {{ form.tender_creator }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.contract_creator.id_for_label }}" class="form-label">{{ form.contract_creator.label }}</label>
-                    {{ form.contract_creator }}
                 </div>
             </div>
         </div>
@@ -247,6 +271,11 @@
             </div>
             
             <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.proposed_advert_date.id_for_label }}" class="form-label">{{ form.proposed_advert_date.label }}</label>
+                    {{ form.proposed_advert_date }}
+                </div>
+
                 <div class="col-md-4 mb-3">
                     <label for="{{ form.tender_advert_date.id_for_label }}" class="form-label">{{ form.tender_advert_date.label }}</label>
                     {{ form.tender_advert_date }}
@@ -273,13 +302,13 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
+                    <label for="{{ form.tender_validity_days.id_for_label }}" class="form-label">{{ form.tender_validity_days.label }}</label>
+                    {{ form.tender_validity_days }}
+                </div>
+
+                <div class="col-md-6 mb-3">
                     <label for="{{ form.tender_validity_expiry_date.id_for_label }}" class="form-label">{{ form.tender_validity_expiry_date.label }}</label>
                     {{ form.tender_validity_expiry_date }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.tender_validity_duration_days.id_for_label }}" class="form-label">{{ form.tender_validity_duration_days.label }}</label>
-                    {{ form.tender_validity_duration_days }}
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -290,36 +319,6 @@
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.tender_evaluation_end_date.id_for_label }}" class="form-label">{{ form.tender_evaluation_end_date.label }}</label>
                     {{ form.tender_evaluation_end_date }}
-                </div>
-            </div>
-        </div>
-
-        <!-- Status & Contract -->
-        <div class="form-section">
-            <div class="form-section-header">
-                <h3><i class="bi bi-flag"></i> Status & Contract Information</h3>
-                <p>Set the current status and contract details</p>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.loa_status.id_for_label }}" class="form-label">{{ form.loa_status.label }}</label>
-                    {{ form.loa_status }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.contract_status.id_for_label }}" class="form-label">{{ form.contract_status.label }}</label>
-                    {{ form.contract_status }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.e_purchase_order_no.id_for_label }}" class="form-label">{{ form.e_purchase_order_no.label }}</label>
-                    {{ form.e_purchase_order_no }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.sap_purchase_order_no.id_for_label }}" class="form-label">{{ form.sap_purchase_order_no.label }}</label>
-                    {{ form.sap_purchase_order_no }}
                 </div>
             </div>
         </div>
@@ -348,6 +347,12 @@
                 <h3><i class="bi bi-people"></i> Tender Opening Committee</h3>
                 <p>Add members to the tender opening committee</p>
             </div>
+
+            {% if opening_formset.non_form_errors %}
+            <div class="alert alert-danger">
+                {{ opening_formset.non_form_errors }}
+            </div>
+            {% endif %}
             
             {{ opening_formset.management_form }}
             <div id="opening-formset">
@@ -364,10 +369,24 @@
                             <label class="form-label">Employee</label>
                             {{ form.employee }}
                             {{ form.id }}
+                            {% if form.employee.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.employee.errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div class="col-md-5 mb-2">
                             <label class="form-label">Role</label>
                             {{ form.role }}
+                            {% if form.role.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.role.errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div class="col-md-1 mb-2">
                             {% if form.DELETE %}
@@ -394,6 +413,12 @@
                 <h3><i class="bi bi-people"></i> Tender Evaluation Committee</h3>
                 <p>Add members to the tender evaluation committee</p>
             </div>
+
+            {% if evaluation_formset.non_form_errors %}
+            <div class="alert alert-danger">
+                {{ evaluation_formset.non_form_errors }}
+            </div>
+            {% endif %}
             
             {{ evaluation_formset.management_form }}
             <div id="evaluation-formset">
@@ -410,10 +435,24 @@
                             <label class="form-label">Employee</label>
                             {{ form.employee }}
                             {{ form.id }}
+                            {% if form.employee.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.employee.errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div class="col-md-5 mb-2">
                             <label class="form-label">Role</label>
                             {{ form.role }}
+                            {% if form.role.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.role.errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div class="col-md-1 mb-2">
                             {% if form.DELETE %}
@@ -499,10 +538,15 @@ const closingDateInput = document.getElementById('{{ form.tender_closing_date.id
 const closingTimeInput = document.getElementById('{{ form.tender_closing_time.id_for_label }}');
 const openingDateInput = document.getElementById('{{ form.tender_opening_date.id_for_label }}');
 const openingTimeInput = document.getElementById('{{ form.tender_opening_time.id_for_label }}');
-const validityDaysInput = document.getElementById('{{ form.tender_validity_duration_days.id_for_label }}');
+const validityDaysInput = document.getElementById('{{ form.tender_validity_days.id_for_label }}');
 const validityExpiryInput = document.getElementById('{{ form.tender_validity_expiry_date.id_for_label }}');
 const evaluationDaysInput = document.getElementById('{{ form.tender_evaluation_duration_days.id_for_label }}');
 const evaluationEndInput = document.getElementById('{{ form.tender_evaluation_end_date.id_for_label }}');
+const creationDateInput = document.getElementById('{{ form.tender_creation_date.id_for_label }}');
+const proposedAdvertInput = document.getElementById('{{ form.proposed_advert_date.id_for_label }}');
+const eligibilitySelect = document.getElementById('{{ form.eligibility.id_for_label }}');
+const agpoCategorySelect = document.getElementById('{{ form.agpo_category.id_for_label }}');
+const requisitionSelect = document.getElementById('{{ form.requisition.id_for_label }}');
 
 function addDaysToDate(dateString, days) {
     if (!dateString || days === '' || days === null) {
@@ -561,12 +605,66 @@ function updateComputedTenderFields() {
     updateEvaluationEndDate();
 }
 
+function updateProposedAdvertDate() {
+    if (!creationDateInput || !proposedAdvertInput) {
+        return;
+    }
+    const proposedDays = 7;
+    proposedAdvertInput.value = addDaysToDate(creationDateInput.value, proposedDays);
+}
+
+function updateAgpoVisibility() {
+    if (!eligibilitySelect || !agpoCategorySelect) {
+        return;
+    }
+    const wrapper = agpoCategorySelect.closest('.col-md-6');
+    const isAgpo = eligibilitySelect.value === 'AGPO';
+    if (wrapper) {
+        wrapper.style.display = isAgpo ? '' : 'none';
+    }
+    if (!isAgpo) {
+        agpoCategorySelect.value = '';
+    }
+}
+
+function updateEvaluationDurationFromRequisition() {
+    if (!requisitionSelect || !evaluationDaysInput) {
+        return;
+    }
+    if (evaluationDaysInput.value) {
+        return;
+    }
+    const selectedOption = requisitionSelect.selectedOptions[0];
+    const procurementType = selectedOption?.getAttribute('data-procurement-type');
+    if (procurementType === 'QUOTATION') {
+        evaluationDaysInput.value = '21';
+    } else if (procurementType === 'TENDER') {
+        evaluationDaysInput.value = '30';
+    }
+    updateEvaluationEndDate();
+}
+
 if (closingDateInput || closingTimeInput || validityDaysInput || evaluationDaysInput) {
     closingDateInput?.addEventListener('change', updateComputedTenderFields);
     closingTimeInput?.addEventListener('change', updateComputedTenderFields);
     validityDaysInput?.addEventListener('input', updateComputedTenderFields);
     evaluationDaysInput?.addEventListener('input', updateComputedTenderFields);
     updateComputedTenderFields();
+}
+
+if (creationDateInput) {
+    creationDateInput.addEventListener('change', updateProposedAdvertDate);
+    updateProposedAdvertDate();
+}
+
+if (eligibilitySelect) {
+    eligibilitySelect.addEventListener('change', updateAgpoVisibility);
+    updateAgpoVisibility();
+}
+
+if (requisitionSelect) {
+    requisitionSelect.addEventListener('change', updateEvaluationDurationFromRequisition);
+    updateEvaluationDurationFromRequisition();
 }
 </script>
 {% endblock %}
