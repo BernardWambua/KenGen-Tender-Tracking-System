@@ -42,7 +42,6 @@ urlpatterns = [
     path('custom-admin/bulk-upload/department/', admin_views.bulk_upload_department, name='bulk_upload_department'),
     path('custom-admin/bulk-upload/division/', admin_views.bulk_upload_division, name='bulk_upload_division'),
     path('custom-admin/bulk-upload/section/', admin_views.bulk_upload_section, name='bulk_upload_section'),
-    path('custom-admin/bulk-upload/procurement-type/', admin_views.bulk_upload_procurement_type, name='bulk_upload_procurement_type'),
     path('custom-admin/bulk-upload/loa-status/', admin_views.bulk_upload_loa_status, name='bulk_upload_loa_status'),
     path('custom-admin/bulk-upload/contract-status/', admin_views.bulk_upload_contract_status, name='bulk_upload_contract_status'),
     path('custom-admin/bulk-upload/employee/', admin_views.bulk_upload_employee, name='bulk_upload_employee'),

@@ -173,9 +173,9 @@
                         {% endif %}
                         
                         <!-- Estimated Value -->
-                        {% if tender.estimated_value %}
+                        {% if tender.requisition and tender.requisition.shopping_cart_amount %}
                         <div class="mt-2">
-                            <strong class="text-primary">KSh {{ tender.estimated_value|floatformat:2|intcomma }}</strong>
+                            <strong class="text-primary">KSh {{ tender.requisition.shopping_cart_amount|floatformat:2|intcomma }}</strong>
                         </div>
                         {% endif %}
                         

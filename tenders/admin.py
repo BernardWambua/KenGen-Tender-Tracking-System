@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Region, Department, Division, Section, ProcurementType,
+    Region, Department, Division, Section,
     LOAStatus, ContractStatus, Employee, Tender, Contract, Requisition,
     TenderOpeningCommittee, TenderEvaluationCommittee, ContractCITCommittee, UserProfile,
     Currency, Country
@@ -49,12 +49,6 @@ class SectionAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'division', 'created_at']
     list_filter = ['division__department', 'division']
     search_fields = ['name', 'division__name']
-
-
-@admin.register(ProcurementType)
-class ProcurementTypeAdmin(CreatedByAdminMixin, admin.ModelAdmin):
-    list_display = ['name', 'description', 'created_at']
-    search_fields = ['name', 'description']
 
 
 @admin.register(LOAStatus)
@@ -178,7 +172,7 @@ class TenderAdmin(CreatedByAdminMixin, admin.ModelAdmin):
     list_display = [
         'tender_id', 'tender_reference_number', 'tender_description_short', 'procurement_method',
         'requisition', 'tender_step', 'tender_approval_status', 'tender_advert_date',
-        'tender_closing_date', 'estimated_value', 'created_by'
+        'tender_closing_date', 'created_by'
     ]
     list_filter = [
         'tender_step', 'tender_approval_status', 'eligibility', 'agpo_category', 'procurement_method',
@@ -208,9 +202,6 @@ class TenderAdmin(CreatedByAdminMixin, admin.ModelAdmin):
                       'tender_closing_time', 'tender_opening_date', 'tender_opening_time',
                       'tender_validity_days', 'tender_validity_expiry_date',
                       'tender_evaluation_duration_days', 'tender_evaluation_end_date')
-        }),
-        ('Financial', {
-            'fields': ('estimated_value',)
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),

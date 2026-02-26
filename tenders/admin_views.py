@@ -8,11 +8,11 @@ from openpyxl import load_workbook
 
 from .models import (
     Region, Department, Division, Section, 
-    ProcurementType, LOAStatus, ContractStatus, Employee
+    LOAStatus, ContractStatus, Employee
 )
 from .bulk_upload_forms import (
     RegionUploadForm, DepartmentUploadForm, DivisionUploadForm,
-    SectionUploadForm, ProcurementTypeUploadForm, LOAStatusUploadForm,
+    SectionUploadForm, LOAStatusUploadForm,
     ContractStatusUploadForm, EmployeeUploadForm
 )
 
@@ -44,7 +44,6 @@ def custom_admin_dashboard(request):
             {'name': 'Department', 'url': 'tenders:bulk_upload_department', 'count': Department.objects.count()},
             {'name': 'Division', 'url': 'tenders:bulk_upload_division', 'count': Division.objects.count()},
             {'name': 'Section', 'url': 'tenders:bulk_upload_section', 'count': Section.objects.count()},
-            {'name': 'Procurement Type', 'url': 'tenders:bulk_upload_procurement_type', 'count': ProcurementType.objects.count()},
             {'name': 'e-Contract Step', 'url': 'tenders:bulk_upload_loa_status', 'count': LOAStatus.objects.count()},
             {'name': 'e-Contract Status', 'url': 'tenders:bulk_upload_contract_status', 'count': ContractStatus.objects.count()},
             {'name': 'Employee', 'url': 'tenders:bulk_upload_employee', 'count': Employee.objects.count()},
@@ -89,20 +88,20 @@ def process_excel_file(file, columns):
     """Process Excel file and return list of dictionaries"""
     wb = load_workbook(file)
     ws = wb.active
-    
+
     # Get headers from first row and normalize them
     headers = [str(cell.value).strip() if cell.value else '' for cell in ws[1]]
     normalized_headers = {h.lower(): h for h in headers if h}
     required_columns_lower = [col.lower() for col in columns]
-    
+
     # Validate headers
     missing_columns = [col for col in required_columns_lower if col not in normalized_headers]
     if missing_columns:
         raise ValueError(f"Excel file must contain columns: {', '.join(columns)}. Found: {', '.join(headers)}")
-    
+
     # Create mapping from normalized to original column names
     column_mapping = {normalized_headers[col.lower()]: col for col in columns}
-    
+
     # Create list of dictionaries with normalized column names
     data = []
     for row in ws.iter_rows(min_row=2, values_only=True):
@@ -112,7 +111,7 @@ def process_excel_file(file, columns):
                 value = row[i]
                 normalized_row[column_mapping[header]] = str(value).strip() if value else ''
         data.append(normalized_row)
-    
+
     return data
 
 
@@ -126,40 +125,40 @@ def bulk_upload_region(request):
         if form.is_valid():
             file = form.cleaned_data['file']
             file_ext = file.name.split('.')[-1].lower()
-            
+
             try:
                 # Process file based on extension
                 if file_ext == 'csv':
                     data = process_csv_file(file, ['name'])
                 else:
                     data = process_excel_file(file, ['name'])
-                
+
                 # Create or update regions
                 created_count = 0
                 updated_count = 0
-                
+
                 for row in data:
                     if not row.get('name'):
                         continue
-                    
+
                     region, created = Region.objects.update_or_create(
                         name=row['name'],
                         defaults={}
                     )
-                    
+
                     if created:
                         created_count += 1
                     else:
                         updated_count += 1
-                
+
                 messages.success(request, f'Successfully processed {created_count} new regions and updated {updated_count} existing regions.')
                 return redirect('tenders:custom_admin_dashboard')
-                
+
             except Exception as e:
                 messages.error(request, f'Error processing file: {str(e)}')
     else:
         form = RegionUploadForm()
-    
+
     context = {
         'form': form,
         'title': 'Bulk Upload Regions',
@@ -363,58 +362,6 @@ def bulk_upload_section(request):
         'model_name': 'Section',
         'required_columns': 'name, division_name',
         'example_data': 'Tender Management,Operations Division\nContract Admin,Operations Division'
-    }
-    return render(request, 'tenders/admin/bulk_upload.html', context)
-
-
-@login_required
-@user_passes_test(is_admin_or_superuser)
-@require_http_methods(["GET", "POST"])
-def bulk_upload_procurement_type(request):
-    """Bulk upload procurement types from CSV/Excel"""
-    if request.method == 'POST':
-        form = ProcurementTypeUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = form.cleaned_data['file']
-            file_ext = file.name.split('.')[-1].lower()
-            
-            try:
-                if file_ext == 'csv':
-                    data = process_csv_file(file, ['name'])
-                else:
-                    data = process_excel_file(file, ['name'])
-                
-                created_count = 0
-                updated_count = 0
-                
-                for row in data:
-                    if not row.get('name'):
-                        continue
-                    
-                    proc_type, created = ProcurementType.objects.update_or_create(
-                        name=row['name'],
-                        defaults={}
-                    )
-                    
-                    if created:
-                        created_count += 1
-                    else:
-                        updated_count += 1
-                
-                messages.success(request, f'Successfully processed {created_count} new procurement types and updated {updated_count} existing types.')
-                return redirect('tenders:custom_admin_dashboard')
-                
-            except Exception as e:
-                messages.error(request, f'Error processing file: {str(e)}')
-    else:
-        form = ProcurementTypeUploadForm()
-    
-    context = {
-        'form': form,
-        'title': 'Bulk Upload Procurement Types',
-        'model_name': 'Procurement Type',
-        'required_columns': 'name',
-        'example_data': 'Open Tender\nRestricted Tender\nDirect Procurement'
     }
     return render(request, 'tenders/admin/bulk_upload.html', context)
 

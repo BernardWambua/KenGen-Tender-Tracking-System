@@ -5,7 +5,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import (
     Tender, Contract, TenderOpeningCommittee, TenderEvaluationCommittee,
-    ContractCITCommittee, Region, Department, Division, Section, ProcurementType,
+    ContractCITCommittee, Region, Department, Division, Section,
     LOAStatus, ContractStatus, Employee, Requisition, Currency, Country
 )
 
@@ -117,7 +117,7 @@ class TenderForm(forms.ModelForm):
             'tender_creator', 'proposed_advert_date', 'tender_advert_date',
             'tender_closing_date', 'tender_closing_time', 'tender_opening_date', 'tender_opening_time',
             'tender_validity_days', 'tender_validity_expiry_date',
-            'tender_evaluation_duration_days', 'tender_evaluation_end_date', 'estimated_value'
+            'tender_evaluation_duration_days', 'tender_evaluation_end_date'
         ]
         widgets = {
             'tender_id': forms.NumberInput(attrs={
@@ -206,11 +206,6 @@ class TenderForm(forms.ModelForm):
                 'type': 'date',
                 'readonly': True
             }),
-            'estimated_value': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Estimated value in KSh',
-                'step': '0.01'
-            }),
         }
         labels = {
             'tender_id': 'Tender ID',
@@ -234,7 +229,6 @@ class TenderForm(forms.ModelForm):
             'tender_validity_expiry_date': 'Tender Validity Expiry Date',
             'tender_evaluation_duration_days': 'Tender Evaluation Duration (Days)',
             'tender_evaluation_end_date': 'Tender Evaluation End Date',
-            'estimated_value': 'Estimated Value (KSh)',
         }
 
 
@@ -622,7 +616,7 @@ class RequisitionForm(forms.ModelForm):
             'department': 'Department',
             'division': 'Division',
             'section': 'Section',
-            'assigned_user': 'Requisition Owner',
+            'assigned_user': 'Owner(DO)',
             'procurement_type': 'Procurement Type',
             'tender_creator': 'Tender Creator',
             'date_assigned': 'Date Assigned',

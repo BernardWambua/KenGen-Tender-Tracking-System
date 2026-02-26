@@ -258,31 +258,6 @@
                 </div>
             </div>
 
-            <!-- Purchase Orders -->
-            {% if tender.e_purchase_order_no or tender.sap_purchase_order_no %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="bi bi-receipt"></i> Purchase Orders
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% if tender.e_purchase_order_no %}
-                        <div class="col-md-6 mb-3">
-                            <small class="text-muted d-block">e-Purchase Order No</small>
-                            <strong>{{ tender.e_purchase_order_no }}</strong>
-                        </div>
-                        {% endif %}
-                        {% if tender.sap_purchase_order_no %}
-                        <div class="col-md-6 mb-3">
-                            <small class="text-muted d-block">SAP Purchase Order No</small>
-                            <strong>{{ tender.sap_purchase_order_no }}</strong>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
             <!-- Contract Information -->
             {% if tender.contract %}
             <div class="card mb-4">
@@ -362,18 +337,6 @@
                             <strong>{{ tender.contract.contract_delivery_period }}</strong>
                         </div>
                         {% endif %}
-                        {% if tender.contract.e_purchase_order_no %}
-                        <div class="col-md-6 mb-3">
-                            <small class="text-muted d-block">eGP Purchase Order No</small>
-                            <strong>{{ tender.contract.e_purchase_order_no }}</strong>
-                        </div>
-                        {% endif %}
-                        {% if tender.contract.sap_purchase_order_no %}
-                        <div class="col-md-6 mb-3">
-                            <small class="text-muted d-block">SAP Purchase Order No</small>
-                            <strong>{{ tender.contract.sap_purchase_order_no }}</strong>
-                        </div>
-                        {% endif %}
                         {% if tender.contract.tender_security_amount %}
                         <div class="col-md-6 mb-3">
                             <small class="text-muted d-block">Tender Security Amount</small>
@@ -408,6 +371,18 @@
                         <div class="col-md-6 mb-3">
                             <small class="text-muted d-block">Performance Security Expiry Date</small>
                             <strong>{{ tender.contract.performance_security_expiry_date|date:"d M Y" }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.e_purchase_order_no %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">eGP Purchase Order No</small>
+                            <strong>{{ tender.contract.e_purchase_order_no }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if tender.contract.sap_purchase_order_no %}
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">SAP Purchase Order No</small>
+                            <strong>{{ tender.contract.sap_purchase_order_no }}</strong>
                         </div>
                         {% endif %}
                     </div>
@@ -497,14 +472,14 @@
             </div>
 
             <!-- Financial Information -->
-            {% if tender.estimated_value %}
+            {% if tender.requisition and tender.requisition.shopping_cart_amount %}
             <div class="card mb-4">
                 <div class="card-header">
                     <i class="bi bi-currency-dollar"></i> Financial Information
                 </div>
                 <div class="card-body">
                     <small class="text-muted d-block">Estimated Value</small>
-                    <h3 class="text-primary mb-0">KSh {{ tender.estimated_value|floatformat:2 }}</h3>
+                    <h3 class="text-primary mb-0">KSh {{ tender.requisition.shopping_cart_amount|floatformat:2 }}</h3>
                 </div>
             </div>
             {% endif %}
@@ -566,7 +541,7 @@
                     {% endif %}
                     {% if tender.requisition and tender.requisition.assigned_user %}
                     <div class="mb-0">
-                        <small class="text-muted d-block">Requisition Owner</small>
+                        <small class="text-muted d-block">Owner(DO)</small>
                         <strong>{{ tender.requisition.assigned_user.full_name }}</strong>
                         <br>
                         <small class="text-muted">{{ tender.requisition.assigned_user.email }}</small>

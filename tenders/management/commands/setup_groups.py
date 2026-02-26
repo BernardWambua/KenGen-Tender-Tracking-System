@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from tenders.models import (
     Tender, Employee, Region, Department, Division, Section,
-    ProcurementType, LOAStatus, ContractStatus,
+    LOAStatus, ContractStatus,
     TenderOpeningCommittee, TenderEvaluationCommittee
 )
 
@@ -21,7 +21,7 @@ class Command(BaseCommand):
                 'description': 'Full access to all features including Admin panel, employees, and bulk uploads',
                 'models': [
                     Tender, Employee, Region, Department, Division, Section,
-                    ProcurementType, LOAStatus, ContractStatus,
+                    LOAStatus, ContractStatus,
                     TenderOpeningCommittee, TenderEvaluationCommittee
                 ],
                 'permissions': ['add', 'change', 'delete', 'view']
@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 'description': 'Can create and edit tenders, view lookup data',
                 'models': [Tender, TenderOpeningCommittee, TenderEvaluationCommittee],
                 'permissions': ['add', 'change', 'view'],
-                'view_only': [Region, Department, Division, Section, ProcurementType, LOAStatus, ContractStatus, Employee]
+                'view_only': [Region, Department, Division, Section, LOAStatus, ContractStatus, Employee]
             },
             'Staff': {
                 'description': 'View-only access to tenders and lookup data',
@@ -38,7 +38,7 @@ class Command(BaseCommand):
                 'permissions': [],
                 'view_only': [
                     Tender, Employee, Region, Department, Division, Section,
-                    ProcurementType, LOAStatus, ContractStatus,
+                    LOAStatus, ContractStatus,
                     TenderOpeningCommittee, TenderEvaluationCommittee
                 ]
             }

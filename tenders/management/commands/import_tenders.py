@@ -7,7 +7,7 @@ from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from tenders.models import (
-    Region, Department, Division, Section, ProcurementType,
+    Region, Department, Division, Section,
     LOAStatus, ContractStatus, Employee, Tender, Requisition,
     Currency, Country, Contract
 )
@@ -49,9 +49,6 @@ class Command(BaseCommand):
                 
                 # Parse time
                 tender_closing_time = self.parse_time(row.get('Tender Closing Time'))
-                
-                # Parse estimated value
-                estimated_value = self.parse_decimal(row.get('Estimated'))
                 
                 # Extract tender ID from the "Tender ID : 38" format
                 tender_id_raw = row.get('Tender ID', '')
@@ -120,7 +117,6 @@ class Command(BaseCommand):
                         'tender_evaluation_duration_days': self.parse_int(row.get('Tender Evaluation Duration(30/21 Days)')),
                         'tender_approval_status': tender_approval_status,
                         'tender_step': tender_step,
-                        'estimated_value': estimated_value,
                     }
                 )
 
@@ -200,12 +196,6 @@ class Command(BaseCommand):
             division=division
         )
         return section
-    
-    def get_or_create_procurement_type(self, name):
-        if not name or name.strip() == '':
-            return None
-        proc_type, _ = ProcurementType.objects.get_or_create(name=name.strip())
-        return proc_type
     
     def get_or_create_loa_status(self, name):
         if not name or name.strip() == '':

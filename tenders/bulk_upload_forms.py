@@ -1,5 +1,5 @@
 from django import forms
-from .models import Region, Department, Division, Section, ProcurementType, LOAStatus, ContractStatus
+from .models import Region, Department, Division, Section, LOAStatus, ContractStatus
 
 
 class BulkUploadForm(forms.Form):
@@ -44,11 +44,6 @@ class DivisionUploadForm(BulkUploadForm):
 
 class SectionUploadForm(BulkUploadForm):
     """Form for uploading sections in bulk. Expected columns: name, code, division_code"""
-    pass
-
-
-class ProcurementTypeUploadForm(BulkUploadForm):
-    """Form for uploading procurement types in bulk. Expected columns: name, code"""
     pass
 
 

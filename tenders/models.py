@@ -110,21 +110,6 @@ class Section(models.Model):
         return self.name
 
 
-class ProcurementType(models.Model):
-    """Types of procurement methods"""
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True, null=True)
-    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_procurement_types')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-
 class LOAStatus(models.Model):
     """Letter of Award Status"""
     name = models.CharField(max_length=100, unique=True)
@@ -251,7 +236,7 @@ class Requisition(models.Model):
         null=True,
         blank=True,
         related_name='assigned_requisitions',
-        verbose_name="Requisition Owner"
+        verbose_name="Owner(DO)"
     )
 
     procurement_type = models.CharField(max_length=20, choices=PROCUREMENT_TYPE_CHOICES)
@@ -361,9 +346,6 @@ class Tender(models.Model):
     tender_evaluation_duration_days = models.PositiveIntegerField(blank=True, null=True, help_text="Evaluation duration in days")
     tender_evaluation_end_date = models.DateField(blank=True, null=True)
     
-    # Financial
-    estimated_value = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
-    
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -382,9 +364,8 @@ class Tender(models.Model):
         if self.eligibility != 'AGPO':
             self.agpo_category = None
 
-        if self.tender_creation_date and not self.proposed_advert_date:
-            proposed_days = getattr(settings, 'TENDER_PROPOSED_ADVERT_DAYS', 7)
-            self.proposed_advert_date = self.tender_creation_date + timedelta(days=proposed_days)
+        if self.tender_creation_date and (not self.proposed_advert_date or self.proposed_advert_date.weekday() != 2):
+            self.proposed_advert_date = self._get_next_proposed_advert_date(self.tender_creation_date)
 
         if self.tender_closing_date:
             self.tender_opening_date = self.tender_closing_date
@@ -409,6 +390,19 @@ class Tender(models.Model):
 
         super().save(*args, **kwargs)
 
+    @staticmethod
+    def _get_next_proposed_advert_date(base_date):
+        days_dict = {
+            0: 9,   # Monday -> Wed week after next
+            1: 8,   # Tuesday -> Wed week after next
+            2: 7,   # Wednesday -> Next Wed
+            3: 6,   # Thursday -> Next Wed
+            4: 12,  # Friday -> Wed week after next
+            5: 11,  # Saturday -> Wed week after next
+            6: 10   # Sunday -> Wed week after next
+        }
+        days_to_add = days_dict.get(base_date.weekday())
+        return base_date + timedelta(days=days_to_add)
     @property
     def days_remaining_to_opening(self):
         target_date = self.tender_opening_date or self.tender_closing_date

@@ -36,8 +36,8 @@ def landing_page(request):
         tender_closing_date__gte=datetime.now().date()
     ).count()
     total_employees = Employee.objects.filter(is_active=True).count()
-    total_value = Tender.objects.aggregate(
-        total=Sum('estimated_value')
+    total_value = Requisition.objects.aggregate(
+        total=Sum('shopping_cart_amount')
     )['total'] or 0
     
     # Recent tenders
