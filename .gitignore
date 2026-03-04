@@ -10,8 +10,6 @@ build/
 env/
 venv/
 ENV/
-.venv/
-.venv-2/
 
 # Django
 *.log
