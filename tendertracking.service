@@ -1,0 +1,36 @@
+[Unit]
+Description=KenGen Tender Tracking System
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+# User and group to run the service as
+User=bernard
+Group=bernard
+
+# Path to your project directory
+WorkingDirectory=/home/bernard/projects/KenGen-Tender-Tracking-System
+
+# Path to your virtual environment and gunicorn
+ExecStart=/home/bernard/projects/KenGen-Tender-Tracking-System/env/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8001 \
+    --access-logfile /var/log/tendertracking/access.log \
+    --error-logfile /var/log/tendertracking/error.log \
+    --log-level info \
+    tender_tracking.wsgi:application
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Environment variables
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=/home/bernard/projects/KenGen-Tender-Tracking-System/.env
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

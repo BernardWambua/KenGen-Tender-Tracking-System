@@ -151,3 +151,67 @@ TenderTrackingApp/
 ## License
 
 Proprietary - KenGen Tender Tracking Application
+
+## Run with Docker (Recommended)
+
+### 1) Prepare environment file
+
+Copy the example file and edit values:
+
+```powershell
+Copy-Item .env.docker.example .env
+```
+
+Update at least:
+- `SECRET_KEY` (set a long random value)
+- `DB_PASSWORD` (set a strong password)
+- `ALLOWED_HOSTS` (add your server IP/domain in production)
+
+### 2) Build and start containers
+
+```powershell
+docker compose up --build -d
+```
+
+The app runs at:
+- `http://localhost:8000`
+
+### 3) Create admin user
+
+```powershell
+docker compose exec web python manage.py createsuperuser
+```
+
+### 4) View logs
+
+```powershell
+docker compose logs -f web
+docker compose logs -f db
+```
+
+### 5) Stop the stack
+
+```powershell
+docker compose down
+```
+
+To stop and remove volumes (this deletes database data):
+
+```powershell
+docker compose down -v
+```
+
+## Hosting on a VPS with Docker
+
+1. Install Docker + Docker Compose on the VPS.
+2. Copy project files to the server.
+3. Create `.env` from `.env.docker.example` and set production values.
+4. Run:
+
+```bash
+docker compose up --build -d
+```
+
+5. Open firewall for port `8000` or place Nginx in front and proxy to `web:8000`.
+
+For Red Hat specific setup, see [REDHAT_DOCKER_DEPLOYMENT.md](REDHAT_DOCKER_DEPLOYMENT.md).

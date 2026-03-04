@@ -1,0 +1,4 @@
+employee_id,first_name,last_name,email,phone,department_name,division_name,section_name,job_title,is_active
+EMP001,John,Doe,john.doe@kengen.co.ke,0712345678,Finance,Accounts,Payroll,Accountant,true
+EMP002,Jane,Smith,jane.smith@kengen.co.ke,0723456789,Engineering,Electrical,Generation,Engineer,true
+EMP003,Michael,Johnson,michael.johnson@kengen.co.ke,0734567890,Human Resources,Talent Management,Recruitment,HR Officer,true
