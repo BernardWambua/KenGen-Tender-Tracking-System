@@ -4,9 +4,9 @@ services:
     container_name: tendertracking-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-tenders}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-yourtendersdb}
+      POSTGRES_USER: ${DB_USER:-yourusername}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-yourpassword}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -19,14 +19,14 @@ services:
     depends_on:
       - db
     environment:
-      SECRET_KEY: ${SECRET_KEY:-7Ffx2TdS7yzMUy$$j9F7wT*um*(tdsehj43rGxp1^iZT25gldT%21!WK)q3$$Y6wA-}
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production}
       DEBUG: ${DEBUG:-False}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      DB_NAME: ${DB_NAME:-tenders}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DB_HOST: db
-      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-yourtendersdb}
+      DB_USER: ${DB_USER:-yourusername}
+      DB_PASSWORD: ${DB_PASSWORD:-yourpassword}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
     ports:
       - "8000:8000"
     volumes:
