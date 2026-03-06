@@ -19,7 +19,7 @@ services:
     depends_on:
       - db
     environment:
-      SECRET_KEY: ${SECRET_KEY:-change-this-in-production}
+      SECRET_KEY: ${SECRET_KEY:-7Ffx2TdS7yzMUy$$j9F7wT*um*(tdsehj43rGxp1^iZT25gldT%21!WK)q3$$Y6wA-}
       DEBUG: ${DEBUG:-False}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
       DB_NAME: ${DB_NAME:-tenders}
